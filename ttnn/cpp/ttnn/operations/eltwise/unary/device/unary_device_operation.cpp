@@ -252,6 +252,9 @@ tt::tt_metal::TensorSpec UnaryDeviceOperation::compute_output_specs(
             "Unary: Preallocated output shape must match computed shape. Computed: {}, Preallocated: {}",
             output_shape,
             preallocated_output_shape);
+        TT_FATAL(
+            tensor_args.output_tensor->tensor_spec().tile() == tensor_args.input.tensor_spec().tile(),
+            "Unary: Preallocated output tile must match input tile");
         return tensor_args.output_tensor->tensor_spec();
     }
 
@@ -264,7 +267,7 @@ tt::tt_metal::TensorSpec UnaryDeviceOperation::compute_output_specs(
         // ND distribution still describes the output.
         if (!args.memory_config.shard_spec().has_value() && args.memory_config.nd_shard_spec().has_value()) {
             return tt::tt_metal::TensorSpec(
-                output_shape, TensorLayout(args.output_dtype, PageConfig(output_layout), args.memory_config));
+                output_shape, TensorLayout(args.output_dtype, PageConfig(output_layout, tensor_args.input.tensor_spec().tile()), args.memory_config));
         }
 
         auto shard_spec_opt = args.memory_config.shard_spec();
@@ -302,7 +305,7 @@ tt::tt_metal::TensorSpec UnaryDeviceOperation::compute_output_specs(
             output_shape,
             TensorLayout(
                 args.output_dtype,
-                PageConfig(output_layout),
+                PageConfig(output_layout, tensor_args.input.tensor_spec().tile()),
                 MemoryConfig(memory_layout, buffer_type, shard_spec_opt)));
     }
 
@@ -311,7 +314,7 @@ tt::tt_metal::TensorSpec UnaryDeviceOperation::compute_output_specs(
         output_shape,
         TensorLayout::fromPaddedShape(
             args.output_dtype,
-            PageConfig(output_layout),
+            PageConfig(output_layout, tensor_args.input.tensor_spec().tile()),
             args.memory_config,
             output_shape,
             tensor_args.input.padded_shape()));

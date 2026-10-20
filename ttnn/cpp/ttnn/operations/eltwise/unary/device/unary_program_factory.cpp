@@ -180,8 +180,8 @@ void enumerate_core_rt_args(
 
     const auto input_df = cb_dataformat_for(input.dtype());
     const auto output_df = cb_dataformat_for(output.dtype());
-    const uint32_t input_tile_bytes = tile_size(input_df);
-    const uint32_t output_tile_bytes = tile_size(output_df);
+    const uint32_t input_tile_bytes = input.tensor_spec().tile().get_tile_size(input_df);
+    const uint32_t output_tile_bytes = output.tensor_spec().tile().get_tile_size(output_df);
 
     const uint32_t input_page_bytes = rm_interleaved ? static_cast<uint32_t>(input.buffer()->page_size()) : 0;
     const uint32_t output_page_bytes = rm_interleaved ? static_cast<uint32_t>(output.buffer()->page_size()) : 0;
@@ -446,9 +446,9 @@ ttnn::device_operation::ProgramArtifacts UnaryDeviceOperation::ProgramFactory::c
     const bool is_row_major = input.layout() == Layout::ROW_MAJOR;
 
     DataFormat dfb_data_format = cb_dataformat_for(input.dtype());
-    uint32_t single_tile_size = tile_size(dfb_data_format);
+    uint32_t single_tile_size = input.tensor_spec().tile().get_tile_size(dfb_data_format);
     DataFormat dfb_data_format_output = cb_dataformat_for(output.dtype());
-    uint32_t single_tile_size_output = tile_size(dfb_data_format_output);
+    uint32_t single_tile_size_output = output.tensor_spec().tile().get_tile_size(dfb_data_format_output);
 
     const auto shard_specs = get_shard_specs(input.tensor_spec(), output.tensor_spec());
     const bool has_sharding = shard_specs.has_value();
@@ -513,6 +513,7 @@ ttnn::device_operation::ProgramArtifacts UnaryDeviceOperation::ProgramFactory::c
         .entry_size = input_dfb_page_size,
         .num_entries = src_num_tiles_per_shard.value_or(2),
         .data_format_metadata = dfb_data_format_for_input,
+        .tile_format_metadata = input.tensor_spec().tile(),
         .borrowed_from = src_sharded ? std::optional<TensorParamName>(INPUT) : std::nullopt,
     });
 
@@ -522,6 +523,7 @@ ttnn::device_operation::ProgramArtifacts UnaryDeviceOperation::ProgramFactory::c
             .entry_size = input_dfb_page_size,
             .num_entries = 2,
             .data_format_metadata = dfb_data_format,
+            .tile_format_metadata = input.tensor_spec().tile(),
         });
     }
 
@@ -530,6 +532,7 @@ ttnn::device_operation::ProgramArtifacts UnaryDeviceOperation::ProgramFactory::c
         .entry_size = output_dfb_page_size,
         .num_entries = dst_num_tiles_per_shard.value_or(2),
         .data_format_metadata = dfb_data_format_output,
+        .tile_format_metadata = output.tensor_spec().tile(),
         .borrowed_from = dst_sharded ? std::optional<TensorParamName>(OUTPUT) : std::nullopt,
     });
 
