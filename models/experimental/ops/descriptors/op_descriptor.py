@@ -19,8 +19,9 @@ import ttnn
 # prevent unbounded growth.
 #
 # Keying strategy per arg type:
-#   Tensor       → hash(tensor.spec)       (content-based, no pinning)
-#   Hashable     → hash(obj)               (content-based, no pinning)
+#   Tensor       → tensor.spec             (value equality, no tensor pinning)
+#   Tuple        → (tuple, element keys)  (recursively keyed)
+#   Hashable     → (type(obj), obj)        (type and value retained)
 #   id()-based   → id(obj) + strong ref    (pinned until LRU eviction)
 
 _PROGRAM_KEY_CACHE_MAX = int(os.environ.get("TT_METAL_FUSION_PROGRAM_KEY_CACHE_MAX_ENTRIES", "128"))
@@ -390,20 +391,15 @@ class OpDescriptor:
             # full factory body on repeated inline calls.  Bounded by
             # _PROGRAM_KEY_CACHE_MAX to prevent unbounded growth.
             #
-            # Keying: tensors → hash(spec); hashable args → hash(obj);
-            # id()-only args → id(obj) + strong ref pinning (see
-            # _content_hash / _inline_cache_key_and_refs).
+            # Keying: tensors → spec values; tuples → recursive element keys;
+            # other hashable args → (type(obj), obj); id()-only args → id(obj)
+            # + strong ref pinning (see _argument_key).
             #
-            # Accepted tradeoff: the fingerprint is a proxy for
-            # program_cache_key (computed by C++ compute_program_hash).
-            # A fingerprint collision on args that produce *different*
-            # program_cache_keys would return the wrong cached key —
-            # a silent correctness issue.  This requires (1) a hash
-            # collision in the fingerprint AND (2) the colliding args
-            # to actually change the compiled program.  In practice
-            # this is near-impossible for typical decode loops where
-            # shapes and configs are fixed.  The tradeoff eliminates
-            # a C++ round-trip per inline call (~40 µs).
+            # Value keys resolve hash collisions by equality. Non-tensor
+            # types distinguish equal values such as True, 1, and 1.0,
+            # including values nested inside tuples.
+            # This fingerprint stands in for compute_program_hash; it does
+            # not cover device state such as compute grid or free L1.
             _program_key_cache: OrderedDict = OrderedDict()
             _PROGRAM_KEY_CACHE_REGISTRY.append(_program_key_cache)
 
@@ -426,14 +422,27 @@ class OpDescriptor:
                 except TypeError:
                     return None
 
+            def _argument_key(v, refs):
+                """Key values recursively, retaining specs instead of tensors."""
+                if isinstance(v, ttnn.Tensor):
+                    return v.spec
+                if isinstance(v, tuple):
+                    return (tuple, tuple(_argument_key(item, refs) for item in v))
+                if _content_hash(v) is not None:
+                    return (type(v), v)
+                refs.append(v)
+                return id(v)
+
             def _inline_cache_key_and_refs(args, kwargs):
                 """Cheap fingerprint + list of objects that need pinning.
 
-                Tensors use ``hash(tensor.spec)`` (content-based).  Other
-                args use ``hash()`` if the type provides a content-based
-                ``__hash__``, otherwise ``id()`` — and those objects are
-                collected into ``refs`` for strong-reference pinning in
-                the cache entry.
+                Tensors use their copied ``TensorSpec`` values, so dictionary
+                lookup resolves hash collisions by equality without retaining
+                tensor storage, including tensors nested inside tuples.
+                Tuples recursively key each element. Other content-hashable
+                values use their type and value, otherwise ``id()`` — and
+                those objects are collected into ``refs`` for strong-reference
+                pinning in the cache entry.
 
                 Iterates kwargs in signature-defined ``param_names`` order
                 (deterministic, avoids ``sorted()`` per call).
@@ -443,27 +452,10 @@ class OpDescriptor:
                 parts = []
                 refs = []
                 for i, a in enumerate(args):
-                    if isinstance(a, ttnn.Tensor):
-                        parts.append((i, hash(a.spec)))
-                    else:
-                        h = _content_hash(a)
-                        if h is not None:
-                            parts.append((i, h))
-                        else:
-                            parts.append((i, id(a)))
-                            refs.append(a)
+                    parts.append((i, _argument_key(a, refs)))
                 for k in param_names:
                     if k in kwargs:
-                        v = kwargs[k]
-                        if isinstance(v, ttnn.Tensor):
-                            parts.append((k, hash(v.spec)))
-                        else:
-                            h = _content_hash(v)
-                            if h is not None:
-                                parts.append((k, h))
-                            else:
-                                parts.append((k, id(v)))
-                                refs.append(v)
+                        parts.append((k, _argument_key(kwargs[k], refs)))
                 return tuple(parts), tuple(refs)
 
             @functools.wraps(fn)
@@ -483,9 +475,10 @@ class OpDescriptor:
                 if not deferred:
                     # ── Program key cache: skip full factory on inline hit ──
                     #
-                    # The cache key uses a three-tier strategy:
-                    #   Tensor       → hash(tensor.spec)   content-based
-                    #   Hashable arg → hash(obj)            content-based
+                    # The cache key uses this strategy recursively:
+                    #   Tensor       → tensor.spec        value equality
+                    #   Tuple        → (tuple, element keys)
+                    #   Hashable arg → (type(obj), obj)    type and value
                     #   Other arg    → id(obj)              pinned via strong
                     #                                       ref in cache entry
                     #                                       to prevent address

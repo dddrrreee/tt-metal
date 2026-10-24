@@ -466,6 +466,7 @@ void tensor_mem_config_module(nb::module_& m_tensor) {
         .def_prop_ro("dtype", &tt::tt_metal::TensorSpec::data_type, "Dtype of a tensor")
         .def_prop_ro("tile", &tt::tt_metal::TensorSpec::tile, "Tile of a tensor")
         .def_prop_ro("memory_config", &tt::tt_metal::TensorSpec::memory_config, "Memory config of a tensor")
+        .def("__hash__", [](const TensorSpec& value) { return ttsl::hash::detail::hash_object(value); })
         .def(nb::self == nb::self)
         .def(nb::self != nb::self);
 

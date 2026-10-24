@@ -2656,7 +2656,7 @@ Fused dispatch uses a **four-level caching architecture**:
 
 | Level | Key | Stores | Avoids | Eviction |
 |-------|-----|--------|--------|----------|
-| **Program Key** (per-factory `_program_key_cache`) | cheap arg fingerprint (`id()` / `hash(spec)`) | `(program_cache_key, input_name_map, input_names)` | Full factory body on repeated inline calls | LRU (default 128, `TT_METAL_FUSION_PROGRAM_KEY_CACHE_MAX_ENTRIES`) |
+| **Program Key** (per-factory `_program_key_cache`) | argument values / pinned identities | `(program_cache_key, input_name_map, input_names)` | Full factory body on repeated inline calls | LRU (default 128, `TT_METAL_FUSION_PROGRAM_KEY_CACHE_MAX_ENTRIES`) |
 | **Fusion Build** (`_BUILD_CACHE`) | topology + branch hashes + mesh id | Fused `ProgramDescriptor` + metadata (no tensors) | Codegen, CB allocation, barrier setup | LRU (default 256, `TT_METAL_FUSION_BUILD_CACHE_MAX_ENTRIES`) |
 | **Device Program** (`ProgramCache`) | `type_hash` + descriptor hash | `MeshWorkload` + slot indices | `Program` creation from descriptor | — |
 | **Slot Patching** (per-launch) | per-slot address comparison | `prev_io_addresses` | Patching unchanged address slots | — |
@@ -2732,14 +2732,18 @@ computes a fingerprint from the call arguments and checks the cache:
 - **Miss**: Runs the full factory, then stores the result in the cache for
   next time.
 
-The fingerprint uses three keying strategies depending on argument type
+The fingerprint keys values recursively depending on argument type
 (see [`id()` keying](#program-key-cache-id-keying-and-strong-references)):
 
 | Arg type | Key | Pinned? |
 |----------|-----|---------|
-| `Tensor` | `hash(tensor.spec)` | No |
-| Hashable (int, float, str, etc.) | `hash(obj)` | No |
+| `Tensor` | `tensor.spec` (value equality) | Spec value only; no tensor storage |
+| `tuple` | `(tuple, recursively keyed elements)` | Element keys only |
+| Other content-hashable (int, float, str, etc.) | `(type(obj), obj)` | Value retained in key |
 | id()-only (C++ bindings without `__hash__`) | `id(obj)` | Yes (strong ref) |
+
+This fingerprint stands in for `compute_program_hash`; it does not cover
+device state such as the compute grid or free L1.
 
 Each factory's cache is registered in `_PROGRAM_KEY_CACHE_REGISTRY` so that
 `clear_build_cache()` can clear them all.  The LRU cap is controlled by
@@ -3028,24 +3032,31 @@ code changes.
 
 #### Program key cache `id()` keying and strong references
 
-The program key cache uses a three-tier keying strategy for arguments:
+The program key cache recursively keys arguments:
 
-1. **Tensors** → `hash(tensor.spec)` — content-based, no pinning needed.
-2. **Hashable non-tensors** (int, float, str, tuple, etc.) → `hash(obj)` —
-   content-based, no pinning needed.  Detected via
-   `type(obj).__hash__ is not object.__hash__`.
-3. **id()-only non-tensors** (C++ binding types without custom `__hash__`) →
+1. **Tensors** → `tensor.spec` — copied value, with content hashing and
+   equality; no tensor storage is retained.
+2. **Tuples** → `(tuple, recursively keyed elements)` — each element uses
+   these same rules. Tensors inside tuples contribute only copied specs;
+   nested scalar values retain their types, so `(1, 2)` and `(True, 2.0)`
+   remain distinct. The tuple itself is not retained.
+3. **Other content-hashable non-tensors** (int, float, str, etc.) →
+   `(type(obj), obj)` — type and value are retained in the key. Hash
+   collisions are resolved by equality, and `True`, `1`, and `1.0` remain
+   distinct. Detected by a working, non-identity `__hash__`.
+4. **id()-only non-tensors** (C++ binding types without custom `__hash__`) →
    `id(obj)` — requires pinning to prevent address reuse.
 
-For category 3, the cache entry holds **strong references** (`_arg_refs`)
+For category 4, the cache entry holds **strong references** (`_arg_refs`)
 to the keyed objects.  This pins them in memory for the lifetime of the
 cache entry, guaranteeing their addresses cannot be reused by CPython's
 allocator.  When the entry is LRU-evicted, the references are dropped.
 
-Only C++ binding config objects (lightweight structs with a few fields)
-fall into category 3.  Python builtins and any type with a content-based
-`__hash__` are never pinned.  At most `_PROGRAM_KEY_CACHE_MAX` entries
-(default 128) exist per factory, bounding the total pinned set.
+Unhashable objects and C++ binding config objects with identity hashes
+fall into category 4, including such objects nested inside tuples.
+Other content-hashable objects are retained directly in category 3's keys.
+At most `_PROGRAM_KEY_CACHE_MAX` entries (default 128)
+exist per factory, bounding the retained set.
 
 
 ## Constraints and Limitations
