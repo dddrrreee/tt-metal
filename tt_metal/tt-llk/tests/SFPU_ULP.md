@@ -300,12 +300,11 @@ do not say.
   is exact like the predicates.
 - **`Erfc`** is tracked by #51137 (input clamp, under #52178).
 - **Blackhole `Reciprocal`**, precise, `Float32` (and `Float16_b`) to `Float32` at a
-  32-bit Dest, is gated at 88242 (90174) steps over its whole range although it is 1
-  step below |x| = 2^109: the last refinement of `_calculate_reciprocal_fast_24b_5c_`
-  stops correcting once 1/x is small enough, and the top binades rise to the
-  approximate mode's figure (#62655). The list is split only where a figure
-  crosses the ceiling, so those binades set the cell's gate. Wormhole is 1 step
-  throughout.
+  32-bit Dest, uses multiplicative Newton refinements and is gated at 1 step over
+  the normal-input sweep, with subnormal outputs flushed. The former additive
+  correction could flush even when the reciprocal was normal, leaving the raw
+  estimate in the top binades (#62655). The two affected rows are re-emitted from
+  the full sweep; approximate mode and 16-bit Dest retain their own figures.
 - The not-measurable rows are explained op by op in
   `test_sfpu_accuracy_budget._UNMEASURABLE_CELLS_ACKNOWLEDGED` (and `_ON[arch]` for one
   table's own), and the lanes a tracked defect names in

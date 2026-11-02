@@ -154,64 +154,60 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations) {
 #endif
 }
 
-// FP32 reciprocal, with throughput of 5c/32.
-inline void _calculate_reciprocal_fast_24b_5c_(const int iterations) {
+// FP32 reciprocal, with throughput of 7c/32.
+inline void _calculate_reciprocal_fast_24b_7c_(const int iterations) {
+    // Two multiplicative Newton steps avoid the underflowing additive correction
+    // of the cubic refinement: even for a normal reciprocal, (e^3+e^2+e)*y can
+    // flush before SFPMAD adds y. Both factors below stay near one.
+    //
+    // y = arecip(x)
+    // f = guard(2 - x*y)
+    // y1 = f*y - 0.0
+    // g = guard(2 - x*y1)
+    // z = g*y1 - 0.0
+    //
+    // guard clears bit 30: factors near one are unchanged, canonical NaN becomes
+    // 1.5, and 2 becomes zero. Thus zero/infinity inputs retain the estimate's
+    // signed infinity/zero, including the existing NaN-to-zero behavior.
 #ifdef DISABLE_SFPLOADMACRO
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++) {
         TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, 0);
         TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG1, sfpi::SFPARECIP_MOD1_RECIP);
-        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG2, 1);  // SFPMAD_MOD1_NEGATE_VA
-        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG2, p_sfpu::LREG2, p_sfpu::LREG3, 0);
-        TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG2, p_sfpu::LREG2, p_sfpu::LREG3, 0);
-        TTI_SFPSWAP(0, p_sfpu::LCONST_1, p_sfpu::LREG3, sfpi::SFPSWAP_MOD1_VEC_MIN_MAX);
-        TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG1, p_sfpu::LREG0, 0);
+        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG12, p_sfpu::LREG2, 1);
+        TTI_SFPAND(0, p_sfpu::LREG13, p_sfpu::LREG2, 0);
+        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG1, 2);
+        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG12, p_sfpu::LREG2, 1);
+        TTI_SFPAND(0, p_sfpu::LREG13, p_sfpu::LREG2, 0);
+        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG0, 2);
         TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_6, 0);
     }
 #else
-    // Pseudocode:
-    //
-    // y = arecip(x)
-    // e = 1 - x*y
-    // t = e * e + e
-    // t2 = t * e + e    # e**3 + e**2 + e
-    // t2 = min(t2, 1.0) # replace NaN with 1.0
-    // y = t2 * y + y    # y = y * (e**3 + e**2 + e + 1)
-    //                   # if y = ±0 or ±inf, then y = y+y
-    //
-    // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
-    //
-    //   | Load | Simple                 | MAD                     | Store   |
-    // - | -----| ---------------------- | ----------------------- |-------- |
-    // 0 | [y]  |                        |                         |         |
-    // 1 |      | [y] = arecip(y)        |                         |         |
-    // 2 | [e]  |                        |                         |         |
-    // 3 |      | [e] L16 = arecip(e)    | e = mad(-e, y, 1.0)     |         |
-    // 4 |      |                        |                         |         |
-    // 0 |      |                        | [e] = mad(e, e, e)      | [e]     |
-    // 1 | [t2] |                        |                         |         |
-    // 2 |      |                        | [t2] = mad(t2, e, t2)   | [y] L16 |
-    // 3 |      |                        |                         |         |
-    // 4 | [z]  | [t2] = swap(t2, 1.0)   |                         |         |
-    // 0 |      |                        |                         |         |
-    // 1 |      |                        | [z] = mad(t2, z, z)     |         |
-    // 2 |      |                        |                         |         |
-    // 3 |      |                        |                         | [z]     |
+    // One vector's schedule (subsequent vectors start every seven issues):
+    //   0 load y; 1 arecip(y); 2 load x into e; 3 e = 2-e*y;
+    //   6 guard(e); 7 e = e*y; 8 load original x into t;
+    //   9 t = 2-e*t and store e=y1; 11 load y1 into z;
+    //   12 guard(t); 13 z = t*z; 15 store z.
+    // The load at 8 precedes the intermediate store at 9. That store and the
+    // final store at 15 precede the next writes to their registers, including
+    // during scalar stalls: no delayed store depends on a reused L16 value.
 
-    lltt::replay(0, 4);
+    lltt::replay(0, 1);
+    TTI_SFPNOP;
+    lltt::replay(2, 2);
     TTI_SFPLOAD(7, 0, ADDR_MOD_6, 0);
-
+    TTI_SFPNOP;
+    lltt::replay(6, 1);
 #pragma GCC unroll 7
-    for (int d = 0; d < iterations - 1; d++) {
-        lltt::replay(0, 5);
+    for (int i = 0; i < iterations - 1; i++) {
+        lltt::replay(0, 7);
     }
-
     TTI_SFPNOP;
     lltt::replay(1, 1);
     TTI_SFPNOP;
-    lltt::replay(3, 2);
-
     TTI_SFPNOP;
+    lltt::replay(7, 1);
+    lltt::replay(5, 1);
     TTI_SFPNOP;
     TTI_SFPNOP;
     TTI_SFPNOP;
@@ -285,88 +281,50 @@ inline void _init_reciprocal_fast_8b_3c_() {
 #endif
 }
 
-inline void _init_reciprocal_fast_24b_5c_() {
+inline void _init_reciprocal_fast_24b_7c_() {
+    sfpi::vConstIntPrgm1 = static_cast<int>(0xbfffffffU);
 #ifndef DISABLE_SFPLOADMACRO
     constexpr int e = p_sfpu::LREG0;
-    constexpr int t2 = p_sfpu::LREG1;
+    constexpr int t = p_sfpu::LREG1;
     constexpr int z = p_sfpu::LREG2;
     constexpr int y = p_sfpu::LREG3;
 
-    // InstructionTemplate[0]
+    // The four templates are the estimate and the last three Newton MADs.
+    // MAD modifier 2 supplies -0.0, preserving the sign of a zero result.
     TTI_SFPARECIP(0, 0, 12, sfpi::SFPARECIP_MOD1_RECIP);
-
-    // InstructionTemplate[1]
-    TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG0, 0, 13, 0);
-
-    // InstructionTemplate[2]
-    // SFPMAD(VA=t2, VB=0 or VD, VC=VD or z)
-    TTI_SFPMAD(t2, p_sfpu::LREG0, z, 14, 0);
-
-    // InstructionTemplate[3]
-    TTI_SFPSWAP(0, p_sfpu::LCONST_1, 15, sfpi::SFPSWAP_MOD1_VEC_MIN_MAX);
-
-    // Macro 0: [y]
-    {
-        constexpr std::uint32_t simple_bits = 0x00 | 0x00 | (0 << 3) | (4 + 0);
-        constexpr std::uint32_t mad_bits = 0;
-        constexpr std::uint32_t round_bits = 0;
-        constexpr std::uint32_t store_bits = 0x00 | 0x40 | (6 << 3) | 3;
-
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
-        TTI_SFPCONFIG(0, 4, 0);
-    }
-
-    // Macro 1: [e]
-    {
-        constexpr std::uint32_t simple_bits = 0x00 | 0x40 | (0 << 3) | (4 + 0);
-        constexpr std::uint32_t mad_bits = 0x00 | 0x00 | (2 << 3) | (4 + 1);
-        constexpr std::uint32_t round_bits = 0;
-        constexpr std::uint32_t store_bits = 0x00 | 0x00 | (2 << 3) | 3;
-
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
-        TTI_SFPCONFIG(0, 4 + 1, 0);
-    }
-
-    // Macro 2: [t2]
-    {
-        constexpr std::uint32_t simple_bits = 0x80 | 0x00 | (2 << 3) | (4 + 3);
-        constexpr std::uint32_t mad_bits = 0x00 | 0x00 | (0 << 3) | (4 + 2);
-
-        TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 2, 1);
-    }
-
-    // Macro 3: [z]
-    {
-        // Keep the corrected result in z. Macro 0 still needs L16 for its delayed
-        // store of the next vector's approximate reciprocal. Even with instruction-
-        // counted delays, an issued MAD completes during scalar stalls (e.g. gcov),
-        // so writing its result to L16 can clobber that value before macro 0 stores it.
-        // The next load of z follows this macro's store, so z has no such overlap.
-        constexpr std::uint32_t simple_bits = 0;
-        constexpr std::uint32_t mad_bits = 0x80 | 0x00 | (1 << 3) | (4 + 2);
-        constexpr std::uint32_t round_bits = 0;
-        constexpr std::uint32_t store_bits = 0x00 | 0x00 | (3 << 3) | 3;
-
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
-        TTI_SFPCONFIG(0, 4 + 3, 0);
-    }
-
-    // Misc: {UsesLoadMod0ForStore=1, WaitForElapsedInstructions=1} for all macros.
+    TTI_SFPMAD(y, 0, p_sfpu::LCONST_0, 13, 2);
+    TTI_SFPMAD(e, 0, p_sfpu::LREG12, 14, 1);
+    TTI_SFPMAD(t, 0, p_sfpu::LCONST_0, 15, 2);
+    // Macro 0: estimate, ready one issue after the load.
+    constexpr unsigned s0 = (4 + 0);
+    TTI_SFPCONFIG(s0, 4, 1);
+    // Macro 1: first multiply at +5; store y1 at +7.
+    constexpr unsigned m1 = 0x80 | (4 << 3) | (4 + 1);
+    constexpr unsigned st1 = (6 << 3) | 3;
+    TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, m1 << 8);
+    TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, st1 << 8);
+    TTI_SFPCONFIG(0, 5, 0);
+    // Macro 2: second factor at +1, after loading the original x.
+    constexpr unsigned m2 = 0x80 | (4 + 2);
+    TTI_SFPCONFIG(m2 << 8, 6, 1);
+    // Macro 3: final multiply at +2; store the result at +4.
+    constexpr unsigned m3 = 0x80 | (1 << 3) | (4 + 3);
+    constexpr unsigned st3 = (3 << 3) | 3;
+    TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, m3 << 8);
+    TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, st3 << 8);
+    TTI_SFPCONFIG(0, 7, 0);
+    // Count elapsed instructions; stores use the load format.
     TTI_SFPCONFIG(0xff0, 8, 1);
-
-    constexpr std::uint32_t prev_offset = -2 & 0x3ff;
-    constexpr std::uint32_t offset = 0;
-
-    load_replay_buf(0, 6, [e, t2, z, y, offset, prev_offset] {
-        TTI_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));
-        TTI_SFPLOADMACRO((2 << 2) | (t2 & 3), 0, ADDR_MOD_7, prev_offset | (t2 >> 2));
-        TTI_SFPLOADMACRO((1 << 2) | (e & 3), 0, ADDR_MOD_7, offset | (e >> 2));
-        TTI_SFPMAD(p_sfpu::LREG0, y, p_sfpu::LCONST_1, 0, 1);  // SFPMAD_MOD1_NEGATE_VA
-        TTI_SFPLOADMACRO((3 << 2) | (z & 3), 0, ADDR_MOD_6, prev_offset | (z >> 2));
-        TTI_SFPLOADMACRO((3 << 2) | (z & 3), 0, ADDR_MOD_7, prev_offset | (z >> 2));
+    constexpr unsigned prev = -2 & 0x3ff;
+    load_replay_buf(0, 8, [] {
+        TTI_SFPLOADMACRO((0 << 2) | y, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOADMACRO((2 << 2) | t, 0, ADDR_MOD_7, prev);
+        TTI_SFPLOADMACRO((1 << 2) | e, 0, ADDR_MOD_7, 0);
+        TTI_SFPMAD(e, y, p_sfpu::LREG12, e, 1);
+        TTI_SFPLOADMACRO((3 << 2) | z, 0, ADDR_MOD_6, prev);
+        TTI_SFPAND(0, p_sfpu::LREG13, t, 0);
+        TTI_SFPAND(0, p_sfpu::LREG13, e, 0);
+        TTI_SFPLOADMACRO((3 << 2) | z, 0, ADDR_MOD_7, prev);
     });
 #endif
 }
@@ -388,7 +346,7 @@ inline void calculate_reciprocal() {
     if constexpr (APPROXIMATION_MODE) {
         _calculate_reciprocal_fast_7b_(ITERATIONS);
     } else if constexpr (is_fp32_dest_acc_en) {
-        _calculate_reciprocal_fast_24b_5c_(ITERATIONS);
+        _calculate_reciprocal_fast_24b_7c_(ITERATIONS);
     } else {
         _calculate_reciprocal_fast_8b_3c_(ITERATIONS);
     }
@@ -397,7 +355,7 @@ inline void calculate_reciprocal() {
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en>
 void recip_init() {
     // Full-tile reciprocal owns the shared LOADMACRO/Misc configuration and, for precise FP32,
-    // SFPU replay slots 0-5. Reinitialize another SFPU macro/replay owner before using it again.
+    // SFPU replay slots 0-7 and vConstIntPrgm1. Reinitialize another SFPU macro/replay owner before using it again.
     // Scalar/first-column sfpu_reciprocal_iter callers only need generic unary SFPU init plus
     // sfpu_reciprocal_init; they must not pay for or clobber state with this full-tile setup.
     // Common SFPU init inlined (SFPU config register + ADDR_MOD_7 + reciprocal's ADDR_MOD_6 + counter
@@ -412,7 +370,7 @@ void recip_init() {
     if constexpr (APPROXIMATION_MODE) {
         _init_reciprocal_fast_7b_();
     } else if constexpr (is_fp32_dest_acc_en) {
-        _init_reciprocal_fast_24b_5c_();
+        _init_reciprocal_fast_24b_7c_();
     } else {
         _init_reciprocal_fast_8b_3c_();
     }
