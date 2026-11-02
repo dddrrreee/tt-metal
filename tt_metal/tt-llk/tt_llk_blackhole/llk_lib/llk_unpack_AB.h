@@ -177,6 +177,9 @@ inline void _llk_unpack_AB_init_(const ckernel::TensorShape tensor_shape, const 
     LLK_VALIDATE_TENSOR_SHAPE_UNPACK("_llk_unpack_AB_init_", tensor_shape);
     const bool within_face_16x16_transpose = transpose == ckernel::Transpose::IntraFace || transpose == ckernel::Transpose::Both;
     const bool transpose_of_faces          = transpose == ckernel::Transpose::InterFace || transpose == ckernel::Transpose::Both;
+    // Order the first AB unpack after pending single-operand/dummy-source unpacks.
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::UNPACK);
+
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose); // transpose within the face
 
     config_unpacker_x_end<p_setadc::UNP_AB>(tensor_shape.face_r_dim);
