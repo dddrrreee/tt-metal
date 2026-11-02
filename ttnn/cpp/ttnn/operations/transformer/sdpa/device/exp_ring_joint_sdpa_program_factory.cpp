@@ -705,6 +705,11 @@ tt::tt_metal::ProgramDescriptor build_exp_ring_joint_sdpa_program_descriptor(
     defines["DHT_GRANULARITY"] = std::to_string(dht_granularity);
     defines["REDUCE_GRANULARITY"] = std::to_string(reduce_granularity);
     defines["EXP_APPROX_MODE"] = std::to_string(exp_approx_mode);
+    // Same as sdpa_program_factory.cpp (#62482) and ring_joint_sdpa_program_factory.cpp: this factory's compute kernel
+    // also runs the streaming helpers, so a LoFi P.V setup must re-record its image (sdpa_pv_mm_setup).
+    if (math_fidelity == MathFidelity::LoFi) {
+        defines["SDPA_COMPUTE_LOFI"] = "1";
+    }
 
     // NOTE: KernelDescriptor construction is deferred until after chain construction
     // so that the mcast_enabled compile-time arg can be determined first.
