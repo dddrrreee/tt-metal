@@ -17,6 +17,28 @@
 
 using namespace ckernel;
 
+namespace ckernel::math
+{
+// Like the MOP, this policy belongs to the most recent standard multiply init.
+static bool elwmul_acc_to_dest = true;
+
+// Keep the clear's temporary registers out of the accumulating path's hot loop.
+template <bool is_fp32_dest_acc_en>
+static __attribute__((noinline)) void clear_elwmul_dest_tile(const std::uint32_t dst_index, const std::uint32_t num_faces)
+{
+    constexpr std::uint32_t tiles_per_bank = MAX_TILES_IN_HALF_DEST >> is_fp32_dest_acc_en;
+    const std::uint32_t local_tile         = dst_index & (tiles_per_bank - 1);
+#pragma GCC unroll 4
+    for (std::uint32_t face = 0; face < TILE_NUM_FACES; face++)
+    {
+        if (face < num_faces)
+        {
+            TT_ZEROACC(p_zeroacc::CLR_16, is_fp32_dest_acc_en, 0, ADDR_MOD_1, get_dest_index_in_faces(local_tile, face));
+        }
+    }
+}
+} // namespace ckernel::math
+
 /*************************************************************************
  * Common Helpers
  *************************************************************************/
@@ -212,6 +234,11 @@ inline void _llk_math_eltwise_binary_standard_init_(const ckernel::TensorShape t
     eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, math_fidelity>();
     eltwise_binary_configure_mop_standard<eltwise_binary_type, src_b_bcast_type, math_fidelity>(acc_to_dest, tensor_shape);
 
+    if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWMUL)
+    {
+        math::elwmul_acc_to_dest = acc_to_dest;
+    }
+
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
@@ -250,6 +277,18 @@ inline void _llk_math_eltwise_binary_standard_(const ckernel::TensorShape tensor
 
     // Dest counter always jumps by 32x32 tile spacing regardless of actual tile size
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
+
+    if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWMUL)
+    {
+        if (!math::elwmul_acc_to_dest)
+        {
+            // Blackhole ELWMUL always accumulates, including LoFi. Clear the selected tile once,
+            // before any fidelity phase. ZEROACC takes face indices within the selected DEST bank;
+            // the write address selects that bank. RWC is still zero here, avoiding the last-face
+            // bank-select overflow encountered when clearing after advancing through a tile.
+            math::clear_elwmul_dest_tile<is_fp32_dest_acc_en>(dst_index, tensor_shape.total_num_faces());
+        }
+    }
 
     if constexpr ((eltwise_binary_type == EltwiseBinaryType::ELWADD) || (eltwise_binary_type == EltwiseBinaryType::ELWSUB))
     {

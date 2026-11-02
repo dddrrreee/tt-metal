@@ -165,9 +165,9 @@ ALWI void sub_reuse_dest_init(std::uint32_t icb, std::uint32_t call_line = __bui
  * start of MAIN. For general information on init functions refer to any_init. For the dest-reuse variant
  * (one operand from DST) use mul_reuse_dest_init<reuse_dest> below.
  *
- * acc_to_dest defaults to true here for backwards compatibility with Quasar (where it selects
- * accumulate-into-DST); it is unused on WH/BH, where accumulation is the default behaviour. Pass the
- * three-argument form for explicit control.
+ * acc_to_dest defaults to true for backwards compatibility. On Blackhole and Quasar, false
+ * overwrites the destination and true accumulates into it. Wormhole always accumulates. Pass the
+ * three-argument form for explicit control on architectures that support it.
  *
  * | Argument    | Description                                              | Type     | Valid Range | Required |
  * |-------------|----------------------------------------------------------|----------|-------------|----------|
