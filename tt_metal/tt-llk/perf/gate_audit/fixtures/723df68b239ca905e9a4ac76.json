@@ -1,0 +1,2648 @@
+{
+ "jobs": [
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123515807590",
+   "completed_at": "2026-10-29T14:38:47Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T14:37:40Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123515807590",
+   "id": 123515807590,
+   "labels": [
+    "ubuntu-slim"
+   ],
+   "name": "LLK perf merge gate (changes)",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwh2nZg",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 0,
+   "runner_group_name": "GitHub Actions",
+   "runner_id": 1010765329,
+   "runner_name": "GitHub Actions 1010765329",
+   "started_at": "2026-10-29T14:37:53Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:38:01Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:37:56Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:38:41Z",
+     "conclusion": "success",
+     "name": "Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+     "number": 2,
+     "started_at": "2026-10-29T14:38:01Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:38:44Z",
+     "conclusion": "success",
+     "name": "Classify this entry's own changes",
+     "number": 3,
+     "started_at": "2026-10-29T14:38:41Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:38:45Z",
+     "conclusion": "success",
+     "name": "Post Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+     "number": 6,
+     "started_at": "2026-10-29T14:38:44Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:38:45Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 7,
+     "started_at": "2026-10-29T14:38:45Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123515807590",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123516468226",
+   "completed_at": "2026-10-29T14:39:28Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T14:38:48Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123516468226",
+   "id": 123516468226,
+   "labels": [
+    "ubuntu-latest"
+   ],
+   "name": "LLK perf merge gate (measure) / Docker setup / Artifact metadata",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwie8Ag",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 0,
+   "runner_group_name": "GitHub Actions",
+   "runner_id": 1010765696,
+   "runner_name": "GitHub Actions 1010765696",
+   "started_at": "2026-10-29T14:38:51Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:38:52Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:38:52Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:39:18Z",
+     "conclusion": "success",
+     "name": "Checkout repo",
+     "number": 2,
+     "started_at": "2026-10-29T14:38:52Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:39:25Z",
+     "conclusion": "success",
+     "name": "Extract workflow metadata",
+     "number": 3,
+     "started_at": "2026-10-29T14:39:18Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:39:26Z",
+     "conclusion": "success",
+     "name": "Check LLK CI image",
+     "number": 4,
+     "started_at": "2026-10-29T14:39:25Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:39:26Z",
+     "conclusion": "success",
+     "name": "Post Checkout repo",
+     "number": 8,
+     "started_at": "2026-10-29T14:39:26Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:39:26Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 9,
+     "started_at": "2026-10-29T14:39:26Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123516468226",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123516863575",
+   "completed_at": "2026-10-29T14:39:28Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-29T14:39:28Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123516863575",
+   "id": 123516863575,
+   "labels": [],
+   "name": "LLK perf merge gate (measure) / Docker setup / \ud83d\udd27 Build tool images",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwi3EVw",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-29T14:39:28Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123516863575",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123516864019",
+   "completed_at": "2026-10-29T14:39:28Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-29T14:39:28Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123516864019",
+   "id": 123516864019,
+   "labels": [
+    "ubuntu-latest"
+   ],
+   "name": "LLK perf merge gate (measure) / Docker setup / \ud83d\udc33\ufe0f Build LLK Docker images",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwi3GEw",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-29T14:39:28Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123516864019",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123516864651",
+   "completed_at": "2026-10-29T14:39:28Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-29T14:39:28Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123516864651",
+   "id": 123516864651,
+   "labels": [],
+   "name": "LLK perf merge gate (measure) / Docker setup / \ud83d\udc0d Python venvs",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwi3Iiw",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-29T14:39:28Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123516864651",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123516865468",
+   "completed_at": "2026-10-29T14:39:28Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-29T14:39:28Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123516865468",
+   "id": 123516865468,
+   "labels": [
+    "ubuntu-latest"
+   ],
+   "name": "LLK perf merge gate (measure) / Docker setup / \ud83d\udc33 ManyLinux image",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwi3LvA",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-29T14:39:28Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123516865468",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123516865830",
+   "completed_at": "2026-10-29T14:39:28Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-29T14:39:29Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123516865830",
+   "id": 123516865830,
+   "labels": [
+    "ubuntu-latest"
+   ],
+   "name": "LLK perf merge gate (measure) / Docker setup / \ud83d\udc33 Ubuntu images",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwi3NJg",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-29T14:39:29Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123516865830",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123516867958",
+   "completed_at": "2026-10-29T14:39:28Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-29T14:39:29Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123516867958",
+   "id": 123516867958,
+   "labels": [
+    "ubuntu-latest"
+   ],
+   "name": "LLK perf merge gate (measure) / Docker setup / \ud83c\udff7\ufe0f Update latest tags",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwi3Vdg",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-29T14:39:29Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123516867958",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123516868101",
+   "completed_at": "2026-10-29T14:40:19Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T14:39:29Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123516868101",
+   "id": 123516868101,
+   "labels": [
+    "ubuntu-slim"
+   ],
+   "name": "LLK perf merge gate (measure) / load-test-matrix",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwi3WBQ",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 0,
+   "runner_group_name": "GitHub Actions",
+   "runner_id": 1010765843,
+   "runner_name": "GitHub Actions 1010765843",
+   "started_at": "2026-10-29T14:39:33Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:40:11Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:39:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:40:15Z",
+     "conclusion": "success",
+     "name": "Checkout the repository",
+     "number": 2,
+     "started_at": "2026-10-29T14:40:11Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:40:17Z",
+     "conclusion": "success",
+     "name": "Install dependencies",
+     "number": 3,
+     "started_at": "2026-10-29T14:40:15Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:40:17Z",
+     "conclusion": "success",
+     "name": "Resolve enabled SKUs",
+     "number": 4,
+     "started_at": "2026-10-29T14:40:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:40:17Z",
+     "conclusion": "success",
+     "name": "Build test matrix",
+     "number": 5,
+     "started_at": "2026-10-29T14:40:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:40:18Z",
+     "conclusion": "success",
+     "name": "Post Checkout the repository",
+     "number": 10,
+     "started_at": "2026-10-29T14:40:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:40:18Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 11,
+     "started_at": "2026-10-29T14:40:18Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123516868101",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123516870145",
+   "completed_at": "2026-10-29T14:39:29Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-29T14:39:29Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123516870145",
+   "id": 123516870145,
+   "labels": [],
+   "name": "LLK perf merge gate (measure) / compile-quasar-perf",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwi3eAQ",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-29T14:39:29Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123516870145",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123517366137",
+   "completed_at": "2026-10-29T14:49:37Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T14:40:20Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123517366137",
+   "id": 123517366137,
+   "labels": [
+    "tt-ubuntu-2204-N150-viommu-stable"
+   ],
+   "name": "LLK perf merge gate (measure) / llk_perf_merge_gate_wormhole group 2/3 [wh_n150_civ2]",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwjVveQ",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 18,
+   "runner_group_name": "aus2",
+   "runner_id": 13040958,
+   "runner_name": "tt-ubuntu-2204-n150-viommu-stable-7qbft-runner-8j94s",
+   "started_at": "2026-10-29T14:41:32Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:41:36Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:41:33Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:41:37Z",
+     "conclusion": "success",
+     "name": "Set up runner",
+     "number": 2,
+     "started_at": "2026-10-29T14:41:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:42:06Z",
+     "conclusion": "success",
+     "name": "Initialize containers",
+     "number": 3,
+     "started_at": "2026-10-29T14:41:37Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:42:06Z",
+     "conclusion": "skipped",
+     "name": "Record the job start",
+     "number": 4,
+     "started_at": "2026-10-29T14:42:06Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:29Z",
+     "conclusion": "success",
+     "name": "Checkout code",
+     "number": 5,
+     "started_at": "2026-10-29T14:42:06Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:38Z",
+     "conclusion": "success",
+     "name": "Install SFPI",
+     "number": 6,
+     "started_at": "2026-10-29T14:43:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:38Z",
+     "conclusion": "success",
+     "name": "Set CHIP_ARCH and the run tag",
+     "number": 7,
+     "started_at": "2026-10-29T14:43:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:38Z",
+     "conclusion": "skipped",
+     "name": "Offload: install zstd",
+     "number": 8,
+     "started_at": "2026-10-29T14:43:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:38Z",
+     "conclusion": "skipped",
+     "name": "Offload: download the CPU-built ELFs",
+     "number": 9,
+     "started_at": "2026-10-29T14:43:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:38Z",
+     "conclusion": "skipped",
+     "name": "Offload: unpack and check the CPU-built ELFs",
+     "number": 10,
+     "started_at": "2026-10-29T14:43:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:38Z",
+     "conclusion": "skipped",
+     "name": "Offload: fall back to a board compile",
+     "number": 11,
+     "started_at": "2026-10-29T14:43:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:38Z",
+     "conclusion": "skipped",
+     "name": "Offload: report the fallback to Slack",
+     "number": 12,
+     "started_at": "2026-10-29T14:43:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:21Z",
+     "conclusion": "success",
+     "name": "Run tests",
+     "number": 13,
+     "started_at": "2026-10-29T14:43:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:24Z",
+     "conclusion": "success",
+     "name": "Upload performance data",
+     "number": 14,
+     "started_at": "2026-10-29T14:49:21Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:24Z",
+     "conclusion": "skipped",
+     "name": "Upload test logs on failure",
+     "number": 15,
+     "started_at": "2026-10-29T14:49:24Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:26Z",
+     "conclusion": "success",
+     "name": "Upload JUnit report",
+     "number": 16,
+     "started_at": "2026-10-29T14:49:24Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "success",
+     "name": "Publish Test Results",
+     "number": 17,
+     "started_at": "2026-10-29T14:49:26Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "skipped",
+     "name": "Shadow: check the time left",
+     "number": 18,
+     "started_at": "2026-10-29T14:49:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "skipped",
+     "name": "Shadow: install zstd",
+     "number": 19,
+     "started_at": "2026-10-29T14:49:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "skipped",
+     "name": "Shadow: download the CPU-built ELFs",
+     "number": 20,
+     "started_at": "2026-10-29T14:49:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "skipped",
+     "name": "Shadow: compare the board build with the CPU build",
+     "number": 21,
+     "started_at": "2026-10-29T14:49:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "skipped",
+     "name": "Shadow: unpack and check the CPU-built ELFs",
+     "number": 22,
+     "started_at": "2026-10-29T14:49:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "skipped",
+     "name": "Shadow: measure the CPU-built ELFs",
+     "number": 23,
+     "started_at": "2026-10-29T14:49:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "skipped",
+     "name": "Shadow: collect the results",
+     "number": 24,
+     "started_at": "2026-10-29T14:49:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "skipped",
+     "name": "Shadow: upload the results",
+     "number": 25,
+     "started_at": "2026-10-29T14:49:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "success",
+     "name": "Post Checkout code",
+     "number": 49,
+     "started_at": "2026-10-29T14:49:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:30Z",
+     "conclusion": "success",
+     "name": "Stop containers",
+     "number": 50,
+     "started_at": "2026-10-29T14:49:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:30Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 51,
+     "started_at": "2026-10-29T14:49:30Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123517366137",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123517366275",
+   "completed_at": "2026-10-29T14:49:31Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T14:40:20Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123517366275",
+   "id": 123517366275,
+   "labels": [
+    "tt-ubuntu-2204-N150-viommu-stable"
+   ],
+   "name": "LLK perf merge gate (measure) / llk_perf_merge_gate_wormhole group 3/3 [wh_n150_civ2]",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwjVwAw",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 18,
+   "runner_group_name": "aus2",
+   "runner_id": 13041001,
+   "runner_name": "tt-ubuntu-2204-n150-viommu-stable-7qbft-runner-qxwhw",
+   "started_at": "2026-10-29T14:41:35Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:41:39Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:41:37Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:41:40Z",
+     "conclusion": "success",
+     "name": "Set up runner",
+     "number": 2,
+     "started_at": "2026-10-29T14:41:39Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:42:14Z",
+     "conclusion": "success",
+     "name": "Initialize containers",
+     "number": 3,
+     "started_at": "2026-10-29T14:41:40Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:42:14Z",
+     "conclusion": "skipped",
+     "name": "Record the job start",
+     "number": 4,
+     "started_at": "2026-10-29T14:42:14Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:27Z",
+     "conclusion": "success",
+     "name": "Checkout code",
+     "number": 5,
+     "started_at": "2026-10-29T14:42:14Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:36Z",
+     "conclusion": "success",
+     "name": "Install SFPI",
+     "number": 6,
+     "started_at": "2026-10-29T14:43:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:36Z",
+     "conclusion": "success",
+     "name": "Set CHIP_ARCH and the run tag",
+     "number": 7,
+     "started_at": "2026-10-29T14:43:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:36Z",
+     "conclusion": "skipped",
+     "name": "Offload: install zstd",
+     "number": 8,
+     "started_at": "2026-10-29T14:43:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:36Z",
+     "conclusion": "skipped",
+     "name": "Offload: download the CPU-built ELFs",
+     "number": 9,
+     "started_at": "2026-10-29T14:43:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:36Z",
+     "conclusion": "skipped",
+     "name": "Offload: unpack and check the CPU-built ELFs",
+     "number": 10,
+     "started_at": "2026-10-29T14:43:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:36Z",
+     "conclusion": "skipped",
+     "name": "Offload: fall back to a board compile",
+     "number": 11,
+     "started_at": "2026-10-29T14:43:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:36Z",
+     "conclusion": "skipped",
+     "name": "Offload: report the fallback to Slack",
+     "number": 12,
+     "started_at": "2026-10-29T14:43:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:16Z",
+     "conclusion": "success",
+     "name": "Run tests",
+     "number": 13,
+     "started_at": "2026-10-29T14:43:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:19Z",
+     "conclusion": "success",
+     "name": "Upload performance data",
+     "number": 14,
+     "started_at": "2026-10-29T14:49:16Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:19Z",
+     "conclusion": "skipped",
+     "name": "Upload test logs on failure",
+     "number": 15,
+     "started_at": "2026-10-29T14:49:19Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:21Z",
+     "conclusion": "success",
+     "name": "Upload JUnit report",
+     "number": 16,
+     "started_at": "2026-10-29T14:49:19Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:27Z",
+     "conclusion": "success",
+     "name": "Publish Test Results",
+     "number": 17,
+     "started_at": "2026-10-29T14:49:21Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:27Z",
+     "conclusion": "skipped",
+     "name": "Shadow: check the time left",
+     "number": 18,
+     "started_at": "2026-10-29T14:49:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:27Z",
+     "conclusion": "skipped",
+     "name": "Shadow: install zstd",
+     "number": 19,
+     "started_at": "2026-10-29T14:49:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:27Z",
+     "conclusion": "skipped",
+     "name": "Shadow: download the CPU-built ELFs",
+     "number": 20,
+     "started_at": "2026-10-29T14:49:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:27Z",
+     "conclusion": "skipped",
+     "name": "Shadow: compare the board build with the CPU build",
+     "number": 21,
+     "started_at": "2026-10-29T14:49:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:27Z",
+     "conclusion": "skipped",
+     "name": "Shadow: unpack and check the CPU-built ELFs",
+     "number": 22,
+     "started_at": "2026-10-29T14:49:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:27Z",
+     "conclusion": "skipped",
+     "name": "Shadow: measure the CPU-built ELFs",
+     "number": 23,
+     "started_at": "2026-10-29T14:49:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:27Z",
+     "conclusion": "skipped",
+     "name": "Shadow: collect the results",
+     "number": 24,
+     "started_at": "2026-10-29T14:49:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:27Z",
+     "conclusion": "skipped",
+     "name": "Shadow: upload the results",
+     "number": 25,
+     "started_at": "2026-10-29T14:49:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:28Z",
+     "conclusion": "success",
+     "name": "Post Checkout code",
+     "number": 49,
+     "started_at": "2026-10-29T14:49:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:28Z",
+     "conclusion": "success",
+     "name": "Stop containers",
+     "number": 50,
+     "started_at": "2026-10-29T14:49:28Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:29Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 51,
+     "started_at": "2026-10-29T14:49:28Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123517366275",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123517366310",
+   "completed_at": "2026-10-29T14:50:06Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T14:40:20Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123517366310",
+   "id": 123517366310,
+   "labels": [
+    "tt-ubuntu-2204-N150-viommu-stable"
+   ],
+   "name": "LLK perf merge gate (measure) / llk_perf_merge_gate_wormhole group 1/3 [wh_n150_civ2]",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwjVwJg",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 18,
+   "runner_group_name": "aus2",
+   "runner_id": 13041020,
+   "runner_name": "tt-ubuntu-2204-n150-viommu-stable-7qbft-runner-p5kjs",
+   "started_at": "2026-10-29T14:41:43Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:41:46Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:41:43Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:41:46Z",
+     "conclusion": "success",
+     "name": "Set up runner",
+     "number": 2,
+     "started_at": "2026-10-29T14:41:46Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:42:14Z",
+     "conclusion": "success",
+     "name": "Initialize containers",
+     "number": 3,
+     "started_at": "2026-10-29T14:41:46Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:42:14Z",
+     "conclusion": "skipped",
+     "name": "Record the job start",
+     "number": 4,
+     "started_at": "2026-10-29T14:42:14Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:22Z",
+     "conclusion": "success",
+     "name": "Checkout code",
+     "number": 5,
+     "started_at": "2026-10-29T14:42:14Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:30Z",
+     "conclusion": "success",
+     "name": "Install SFPI",
+     "number": 6,
+     "started_at": "2026-10-29T14:43:22Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:30Z",
+     "conclusion": "success",
+     "name": "Set CHIP_ARCH and the run tag",
+     "number": 7,
+     "started_at": "2026-10-29T14:43:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:30Z",
+     "conclusion": "skipped",
+     "name": "Offload: install zstd",
+     "number": 8,
+     "started_at": "2026-10-29T14:43:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:30Z",
+     "conclusion": "skipped",
+     "name": "Offload: download the CPU-built ELFs",
+     "number": 9,
+     "started_at": "2026-10-29T14:43:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:30Z",
+     "conclusion": "skipped",
+     "name": "Offload: unpack and check the CPU-built ELFs",
+     "number": 10,
+     "started_at": "2026-10-29T14:43:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:30Z",
+     "conclusion": "skipped",
+     "name": "Offload: fall back to a board compile",
+     "number": 11,
+     "started_at": "2026-10-29T14:43:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:30Z",
+     "conclusion": "skipped",
+     "name": "Offload: report the fallback to Slack",
+     "number": 12,
+     "started_at": "2026-10-29T14:43:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:45Z",
+     "conclusion": "success",
+     "name": "Run tests",
+     "number": 13,
+     "started_at": "2026-10-29T14:43:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:48Z",
+     "conclusion": "success",
+     "name": "Upload performance data",
+     "number": 14,
+     "started_at": "2026-10-29T14:49:45Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:48Z",
+     "conclusion": "skipped",
+     "name": "Upload test logs on failure",
+     "number": 15,
+     "started_at": "2026-10-29T14:49:48Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:50Z",
+     "conclusion": "success",
+     "name": "Upload JUnit report",
+     "number": 16,
+     "started_at": "2026-10-29T14:49:48Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:56Z",
+     "conclusion": "success",
+     "name": "Publish Test Results",
+     "number": 17,
+     "started_at": "2026-10-29T14:49:50Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:56Z",
+     "conclusion": "skipped",
+     "name": "Shadow: check the time left",
+     "number": 18,
+     "started_at": "2026-10-29T14:49:56Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:56Z",
+     "conclusion": "skipped",
+     "name": "Shadow: install zstd",
+     "number": 19,
+     "started_at": "2026-10-29T14:49:56Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:56Z",
+     "conclusion": "skipped",
+     "name": "Shadow: download the CPU-built ELFs",
+     "number": 20,
+     "started_at": "2026-10-29T14:49:56Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:56Z",
+     "conclusion": "skipped",
+     "name": "Shadow: compare the board build with the CPU build",
+     "number": 21,
+     "started_at": "2026-10-29T14:49:56Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:56Z",
+     "conclusion": "skipped",
+     "name": "Shadow: unpack and check the CPU-built ELFs",
+     "number": 22,
+     "started_at": "2026-10-29T14:49:56Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:56Z",
+     "conclusion": "skipped",
+     "name": "Shadow: measure the CPU-built ELFs",
+     "number": 23,
+     "started_at": "2026-10-29T14:49:56Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:56Z",
+     "conclusion": "skipped",
+     "name": "Shadow: collect the results",
+     "number": 24,
+     "started_at": "2026-10-29T14:49:56Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:56Z",
+     "conclusion": "skipped",
+     "name": "Shadow: upload the results",
+     "number": 25,
+     "started_at": "2026-10-29T14:49:56Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:57Z",
+     "conclusion": "success",
+     "name": "Post Checkout code",
+     "number": 49,
+     "started_at": "2026-10-29T14:49:56Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:58Z",
+     "conclusion": "success",
+     "name": "Stop containers",
+     "number": 50,
+     "started_at": "2026-10-29T14:49:57Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:49:58Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 51,
+     "started_at": "2026-10-29T14:49:58Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123517366310",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123517366326",
+   "completed_at": "2026-10-29T14:51:04Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T14:40:20Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123517366326",
+   "id": 123517366326,
+   "labels": [
+    "tt-ubuntu-2204-P150b-viommu-prio-stable"
+   ],
+   "name": "LLK perf merge gate (measure) / llk_perf_merge_gate_blackhole group 3/3 [bh_p150b_civ2_viommu_prio]",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwjVwNg",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 18,
+   "runner_group_name": "aus2",
+   "runner_id": 13041047,
+   "runner_name": "tt-ubuntu-2204-p150b-viommu-prio-stable-c7bdq-runner-l7sp7",
+   "started_at": "2026-10-29T14:43:27Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:43:31Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:43:28Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:31Z",
+     "conclusion": "success",
+     "name": "Set up runner",
+     "number": 2,
+     "started_at": "2026-10-29T14:43:31Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:52Z",
+     "conclusion": "success",
+     "name": "Initialize containers",
+     "number": 3,
+     "started_at": "2026-10-29T14:43:31Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:52Z",
+     "conclusion": "skipped",
+     "name": "Record the job start",
+     "number": 4,
+     "started_at": "2026-10-29T14:43:52Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:01Z",
+     "conclusion": "success",
+     "name": "Checkout code",
+     "number": 5,
+     "started_at": "2026-10-29T14:43:52Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:07Z",
+     "conclusion": "success",
+     "name": "Install SFPI",
+     "number": 6,
+     "started_at": "2026-10-29T14:44:01Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:07Z",
+     "conclusion": "success",
+     "name": "Set CHIP_ARCH and the run tag",
+     "number": 7,
+     "started_at": "2026-10-29T14:44:07Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:07Z",
+     "conclusion": "skipped",
+     "name": "Offload: install zstd",
+     "number": 8,
+     "started_at": "2026-10-29T14:44:07Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:07Z",
+     "conclusion": "skipped",
+     "name": "Offload: download the CPU-built ELFs",
+     "number": 9,
+     "started_at": "2026-10-29T14:44:07Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:07Z",
+     "conclusion": "skipped",
+     "name": "Offload: unpack and check the CPU-built ELFs",
+     "number": 10,
+     "started_at": "2026-10-29T14:44:07Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:07Z",
+     "conclusion": "skipped",
+     "name": "Offload: fall back to a board compile",
+     "number": 11,
+     "started_at": "2026-10-29T14:44:07Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:07Z",
+     "conclusion": "skipped",
+     "name": "Offload: report the fallback to Slack",
+     "number": 12,
+     "started_at": "2026-10-29T14:44:07Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:50:50Z",
+     "conclusion": "success",
+     "name": "Run tests",
+     "number": 13,
+     "started_at": "2026-10-29T14:44:07Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:50:53Z",
+     "conclusion": "success",
+     "name": "Upload performance data",
+     "number": 14,
+     "started_at": "2026-10-29T14:50:50Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:50:53Z",
+     "conclusion": "skipped",
+     "name": "Upload test logs on failure",
+     "number": 15,
+     "started_at": "2026-10-29T14:50:53Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:50:55Z",
+     "conclusion": "success",
+     "name": "Upload JUnit report",
+     "number": 16,
+     "started_at": "2026-10-29T14:50:53Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:00Z",
+     "conclusion": "success",
+     "name": "Publish Test Results",
+     "number": 17,
+     "started_at": "2026-10-29T14:50:55Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:00Z",
+     "conclusion": "skipped",
+     "name": "Shadow: check the time left",
+     "number": 18,
+     "started_at": "2026-10-29T14:51:00Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:00Z",
+     "conclusion": "skipped",
+     "name": "Shadow: install zstd",
+     "number": 19,
+     "started_at": "2026-10-29T14:51:00Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:00Z",
+     "conclusion": "skipped",
+     "name": "Shadow: download the CPU-built ELFs",
+     "number": 20,
+     "started_at": "2026-10-29T14:51:00Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:00Z",
+     "conclusion": "skipped",
+     "name": "Shadow: compare the board build with the CPU build",
+     "number": 21,
+     "started_at": "2026-10-29T14:51:00Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:00Z",
+     "conclusion": "skipped",
+     "name": "Shadow: unpack and check the CPU-built ELFs",
+     "number": 22,
+     "started_at": "2026-10-29T14:51:00Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:00Z",
+     "conclusion": "skipped",
+     "name": "Shadow: measure the CPU-built ELFs",
+     "number": 23,
+     "started_at": "2026-10-29T14:51:00Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:00Z",
+     "conclusion": "skipped",
+     "name": "Shadow: collect the results",
+     "number": 24,
+     "started_at": "2026-10-29T14:51:00Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:00Z",
+     "conclusion": "skipped",
+     "name": "Shadow: upload the results",
+     "number": 25,
+     "started_at": "2026-10-29T14:51:00Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:00Z",
+     "conclusion": "success",
+     "name": "Post Checkout code",
+     "number": 49,
+     "started_at": "2026-10-29T14:51:00Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:01Z",
+     "conclusion": "success",
+     "name": "Stop containers",
+     "number": 50,
+     "started_at": "2026-10-29T14:51:00Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:01Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 51,
+     "started_at": "2026-10-29T14:51:01Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123517366326",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123517366352",
+   "completed_at": "2026-10-29T14:51:54Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T14:40:20Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123517366352",
+   "id": 123517366352,
+   "labels": [
+    "tt-ubuntu-2204-P150b-viommu-prio-stable"
+   ],
+   "name": "LLK perf merge gate (measure) / llk_perf_merge_gate_blackhole group 2/3 [bh_p150b_civ2_viommu_prio]",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwjVwUA",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 18,
+   "runner_group_name": "aus2",
+   "runner_id": 13040988,
+   "runner_name": "tt-ubuntu-2204-p150b-viommu-prio-stable-c7bdq-runner-h65qx",
+   "started_at": "2026-10-29T14:43:34Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:43:37Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:43:34Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:37Z",
+     "conclusion": "success",
+     "name": "Set up runner",
+     "number": 2,
+     "started_at": "2026-10-29T14:43:37Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:58Z",
+     "conclusion": "success",
+     "name": "Initialize containers",
+     "number": 3,
+     "started_at": "2026-10-29T14:43:37Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:58Z",
+     "conclusion": "skipped",
+     "name": "Record the job start",
+     "number": 4,
+     "started_at": "2026-10-29T14:43:58Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:30Z",
+     "conclusion": "success",
+     "name": "Checkout code",
+     "number": 5,
+     "started_at": "2026-10-29T14:43:58Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:36Z",
+     "conclusion": "success",
+     "name": "Install SFPI",
+     "number": 6,
+     "started_at": "2026-10-29T14:44:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:36Z",
+     "conclusion": "success",
+     "name": "Set CHIP_ARCH and the run tag",
+     "number": 7,
+     "started_at": "2026-10-29T14:44:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:36Z",
+     "conclusion": "skipped",
+     "name": "Offload: install zstd",
+     "number": 8,
+     "started_at": "2026-10-29T14:44:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:36Z",
+     "conclusion": "skipped",
+     "name": "Offload: download the CPU-built ELFs",
+     "number": 9,
+     "started_at": "2026-10-29T14:44:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:36Z",
+     "conclusion": "skipped",
+     "name": "Offload: unpack and check the CPU-built ELFs",
+     "number": 10,
+     "started_at": "2026-10-29T14:44:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:36Z",
+     "conclusion": "skipped",
+     "name": "Offload: fall back to a board compile",
+     "number": 11,
+     "started_at": "2026-10-29T14:44:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:36Z",
+     "conclusion": "skipped",
+     "name": "Offload: report the fallback to Slack",
+     "number": 12,
+     "started_at": "2026-10-29T14:44:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:44Z",
+     "conclusion": "success",
+     "name": "Run tests",
+     "number": 13,
+     "started_at": "2026-10-29T14:44:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:46Z",
+     "conclusion": "success",
+     "name": "Upload performance data",
+     "number": 14,
+     "started_at": "2026-10-29T14:51:44Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:46Z",
+     "conclusion": "skipped",
+     "name": "Upload test logs on failure",
+     "number": 15,
+     "started_at": "2026-10-29T14:51:46Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:48Z",
+     "conclusion": "success",
+     "name": "Upload JUnit report",
+     "number": 16,
+     "started_at": "2026-10-29T14:51:46Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:49Z",
+     "conclusion": "success",
+     "name": "Publish Test Results",
+     "number": 17,
+     "started_at": "2026-10-29T14:51:48Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:49Z",
+     "conclusion": "skipped",
+     "name": "Shadow: check the time left",
+     "number": 18,
+     "started_at": "2026-10-29T14:51:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:49Z",
+     "conclusion": "skipped",
+     "name": "Shadow: install zstd",
+     "number": 19,
+     "started_at": "2026-10-29T14:51:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:49Z",
+     "conclusion": "skipped",
+     "name": "Shadow: download the CPU-built ELFs",
+     "number": 20,
+     "started_at": "2026-10-29T14:51:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:49Z",
+     "conclusion": "skipped",
+     "name": "Shadow: compare the board build with the CPU build",
+     "number": 21,
+     "started_at": "2026-10-29T14:51:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:49Z",
+     "conclusion": "skipped",
+     "name": "Shadow: unpack and check the CPU-built ELFs",
+     "number": 22,
+     "started_at": "2026-10-29T14:51:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:49Z",
+     "conclusion": "skipped",
+     "name": "Shadow: measure the CPU-built ELFs",
+     "number": 23,
+     "started_at": "2026-10-29T14:51:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:49Z",
+     "conclusion": "skipped",
+     "name": "Shadow: collect the results",
+     "number": 24,
+     "started_at": "2026-10-29T14:51:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:49Z",
+     "conclusion": "skipped",
+     "name": "Shadow: upload the results",
+     "number": 25,
+     "started_at": "2026-10-29T14:51:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:50Z",
+     "conclusion": "success",
+     "name": "Post Checkout code",
+     "number": 49,
+     "started_at": "2026-10-29T14:51:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:50Z",
+     "conclusion": "success",
+     "name": "Stop containers",
+     "number": 50,
+     "started_at": "2026-10-29T14:51:50Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:51:50Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 51,
+     "started_at": "2026-10-29T14:51:50Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123517366352",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123517366541",
+   "completed_at": "2026-10-29T14:52:47Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T14:40:20Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123517366541",
+   "id": 123517366541,
+   "labels": [
+    "tt-ubuntu-2204-P150b-viommu-prio-stable"
+   ],
+   "name": "LLK perf merge gate (measure) / llk_perf_merge_gate_blackhole group 1/3 [bh_p150b_civ2_viommu_prio]",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwjVxDQ",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 18,
+   "runner_group_name": "aus2",
+   "runner_id": 13040987,
+   "runner_name": "tt-ubuntu-2204-p150b-viommu-prio-stable-c7bdq-runner-5cm4h",
+   "started_at": "2026-10-29T14:43:36Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:43:40Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:43:37Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:43:40Z",
+     "conclusion": "success",
+     "name": "Set up runner",
+     "number": 2,
+     "started_at": "2026-10-29T14:43:40Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:03Z",
+     "conclusion": "success",
+     "name": "Initialize containers",
+     "number": 3,
+     "started_at": "2026-10-29T14:43:40Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:03Z",
+     "conclusion": "skipped",
+     "name": "Record the job start",
+     "number": 4,
+     "started_at": "2026-10-29T14:44:03Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:32Z",
+     "conclusion": "success",
+     "name": "Checkout code",
+     "number": 5,
+     "started_at": "2026-10-29T14:44:03Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:38Z",
+     "conclusion": "success",
+     "name": "Install SFPI",
+     "number": 6,
+     "started_at": "2026-10-29T14:44:32Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:38Z",
+     "conclusion": "success",
+     "name": "Set CHIP_ARCH and the run tag",
+     "number": 7,
+     "started_at": "2026-10-29T14:44:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:38Z",
+     "conclusion": "skipped",
+     "name": "Offload: install zstd",
+     "number": 8,
+     "started_at": "2026-10-29T14:44:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:38Z",
+     "conclusion": "skipped",
+     "name": "Offload: download the CPU-built ELFs",
+     "number": 9,
+     "started_at": "2026-10-29T14:44:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:38Z",
+     "conclusion": "skipped",
+     "name": "Offload: unpack and check the CPU-built ELFs",
+     "number": 10,
+     "started_at": "2026-10-29T14:44:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:38Z",
+     "conclusion": "skipped",
+     "name": "Offload: fall back to a board compile",
+     "number": 11,
+     "started_at": "2026-10-29T14:44:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:44:38Z",
+     "conclusion": "skipped",
+     "name": "Offload: report the fallback to Slack",
+     "number": 12,
+     "started_at": "2026-10-29T14:44:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:34Z",
+     "conclusion": "success",
+     "name": "Run tests",
+     "number": 13,
+     "started_at": "2026-10-29T14:44:38Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:37Z",
+     "conclusion": "success",
+     "name": "Upload performance data",
+     "number": 14,
+     "started_at": "2026-10-29T14:52:34Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:37Z",
+     "conclusion": "skipped",
+     "name": "Upload test logs on failure",
+     "number": 15,
+     "started_at": "2026-10-29T14:52:37Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:39Z",
+     "conclusion": "success",
+     "name": "Upload JUnit report",
+     "number": 16,
+     "started_at": "2026-10-29T14:52:37Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:42Z",
+     "conclusion": "success",
+     "name": "Publish Test Results",
+     "number": 17,
+     "started_at": "2026-10-29T14:52:39Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:42Z",
+     "conclusion": "skipped",
+     "name": "Shadow: check the time left",
+     "number": 18,
+     "started_at": "2026-10-29T14:52:42Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:42Z",
+     "conclusion": "skipped",
+     "name": "Shadow: install zstd",
+     "number": 19,
+     "started_at": "2026-10-29T14:52:42Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:42Z",
+     "conclusion": "skipped",
+     "name": "Shadow: download the CPU-built ELFs",
+     "number": 20,
+     "started_at": "2026-10-29T14:52:42Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:42Z",
+     "conclusion": "skipped",
+     "name": "Shadow: compare the board build with the CPU build",
+     "number": 21,
+     "started_at": "2026-10-29T14:52:42Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:42Z",
+     "conclusion": "skipped",
+     "name": "Shadow: unpack and check the CPU-built ELFs",
+     "number": 22,
+     "started_at": "2026-10-29T14:52:42Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:42Z",
+     "conclusion": "skipped",
+     "name": "Shadow: measure the CPU-built ELFs",
+     "number": 23,
+     "started_at": "2026-10-29T14:52:42Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:42Z",
+     "conclusion": "skipped",
+     "name": "Shadow: collect the results",
+     "number": 24,
+     "started_at": "2026-10-29T14:52:42Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:42Z",
+     "conclusion": "skipped",
+     "name": "Shadow: upload the results",
+     "number": 25,
+     "started_at": "2026-10-29T14:52:42Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:43Z",
+     "conclusion": "success",
+     "name": "Post Checkout code",
+     "number": 49,
+     "started_at": "2026-10-29T14:52:42Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:43Z",
+     "conclusion": "success",
+     "name": "Stop containers",
+     "number": 50,
+     "started_at": "2026-10-29T14:52:43Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:52:44Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 51,
+     "started_at": "2026-10-29T14:52:43Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123517366541",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123517368179",
+   "completed_at": "2026-10-29T14:40:19Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-29T14:40:20Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123517368179",
+   "id": 123517368179,
+   "labels": [],
+   "name": "LLK perf merge gate (measure) / Shadow compile, shard ${{ matrix.test-group.split_group }} on ${{ join(matrix.test-group.runs_on, ' ') }}",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwjV3cw",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-29T14:40:20Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123517368179",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123524729191",
+   "completed_at": "2026-10-29T14:53:53Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T14:52:47Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123524729191",
+   "id": 123524729191,
+   "labels": [
+    "ubuntu-latest"
+   ],
+   "name": "LLK perf merge gate (measure) / Upload perf data to the warehouse",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwqXJZw",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 0,
+   "runner_group_name": "GitHub Actions",
+   "runner_id": 1010767009,
+   "runner_name": "GitHub Actions 1010767009",
+   "started_at": "2026-10-29T14:52:50Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:52:52Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:52:51Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:53:17Z",
+     "conclusion": "success",
+     "name": "Initialize containers",
+     "number": 2,
+     "started_at": "2026-10-29T14:52:52Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:53:34Z",
+     "conclusion": "success",
+     "name": "Checkout the repository",
+     "number": 3,
+     "started_at": "2026-10-29T14:53:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:53:35Z",
+     "conclusion": "success",
+     "name": "Download this run's perf data",
+     "number": 4,
+     "started_at": "2026-10-29T14:53:34Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:53:41Z",
+     "conclusion": "success",
+     "name": "Merge the run's shards into one file per architecture",
+     "number": 5,
+     "started_at": "2026-10-29T14:53:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:53:48Z",
+     "conclusion": "success",
+     "name": "Install the SFTP client",
+     "number": 6,
+     "started_at": "2026-10-29T14:53:41Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:53:49Z",
+     "conclusion": "success",
+     "name": "Upload perf data",
+     "number": 7,
+     "started_at": "2026-10-29T14:53:48Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:53:49Z",
+     "conclusion": "success",
+     "name": "Post Checkout the repository",
+     "number": 13,
+     "started_at": "2026-10-29T14:53:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:53:51Z",
+     "conclusion": "success",
+     "name": "Stop containers",
+     "number": 14,
+     "started_at": "2026-10-29T14:53:49Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T14:53:51Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 15,
+     "started_at": "2026-10-29T14:53:51Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123524729191",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123524731295",
+   "completed_at": "2026-10-29T14:52:47Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-29T14:52:47Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123524731295",
+   "id": 123524731295,
+   "labels": [
+    "ubuntu-latest"
+   ],
+   "name": "LLK perf merge gate (measure) / Shadow compile: compare board-built and CPU-built results",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwqXRnw",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-29T14:52:47Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123524731295",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123525378375",
+   "completed_at": "2026-10-29T15:14:04Z",
+   "conclusion": "cancelled",
+   "created_at": "2026-10-29T14:53:53Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123525378375",
+   "id": 123525378375,
+   "labels": [
+    "ubuntu-slim"
+   ],
+   "name": "LLK perf merge gate (wormhole) / Compare perf: current vs main",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwq-xRw",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 0,
+   "runner_group_name": "GitHub Actions",
+   "runner_id": 1010767190,
+   "runner_name": "GitHub Actions 1010767190",
+   "started_at": "2026-10-29T14:54:03Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:54:14Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:54:08Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:16Z",
+     "conclusion": "cancelled",
+     "name": "Checkout repository",
+     "number": 2,
+     "started_at": "2026-10-29T14:54:14Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:16Z",
+     "conclusion": "skipped",
+     "name": "Set up Python",
+     "number": 3,
+     "started_at": "2026-10-29T15:10:16Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:17Z",
+     "conclusion": "skipped",
+     "name": "Install dependencies",
+     "number": 4,
+     "started_at": "2026-10-29T15:10:16Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:17Z",
+     "conclusion": "skipped",
+     "name": "Check the measurement is complete",
+     "number": 5,
+     "started_at": "2026-10-29T15:10:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:17Z",
+     "conclusion": "skipped",
+     "name": "Read the baseline from the warehouse",
+     "number": 6,
+     "started_at": "2026-10-29T15:10:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:17Z",
+     "conclusion": "skipped",
+     "name": "Download the baseline from a workflow run",
+     "number": 7,
+     "started_at": "2026-10-29T15:10:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:18Z",
+     "conclusion": "skipped",
+     "name": "Record the baseline run as the baseline",
+     "number": 8,
+     "started_at": "2026-10-29T15:10:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:18Z",
+     "conclusion": "skipped",
+     "name": "Take the baseline from this run's artifacts",
+     "number": 9,
+     "started_at": "2026-10-29T15:10:18Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:18Z",
+     "conclusion": "skipped",
+     "name": "Record the branch point as the baseline",
+     "number": 10,
+     "started_at": "2026-10-29T15:10:18Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:18Z",
+     "conclusion": "skipped",
+     "name": "Download the PR's perf data",
+     "number": 11,
+     "started_at": "2026-10-29T15:10:18Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:18Z",
+     "conclusion": "skipped",
+     "name": "Check that perf data arrived",
+     "number": 12,
+     "started_at": "2026-10-29T15:10:18Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:18Z",
+     "conclusion": "skipped",
+     "name": "Compare regressions",
+     "number": 13,
+     "started_at": "2026-10-29T15:10:18Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:18Z",
+     "conclusion": "skipped",
+     "name": "Comment on PR",
+     "number": 14,
+     "started_at": "2026-10-29T15:10:18Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:13:12Z",
+     "conclusion": "success",
+     "name": "Upload the gate report",
+     "number": 15,
+     "started_at": "2026-10-29T15:10:18Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:13:17Z",
+     "conclusion": "skipped",
+     "name": "Build the Slack payload",
+     "number": 16,
+     "started_at": "2026-10-29T15:13:12Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:13:19Z",
+     "conclusion": "skipped",
+     "name": "Upload the Slack part",
+     "number": 17,
+     "started_at": "2026-10-29T15:13:19Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:13:20Z",
+     "conclusion": "skipped",
+     "name": "Notify Slack",
+     "number": 18,
+     "started_at": "2026-10-29T15:13:19Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:13:39Z",
+     "conclusion": "failure",
+     "name": "Gate verdict",
+     "number": 19,
+     "started_at": "2026-10-29T15:13:20Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": null,
+     "conclusion": null,
+     "name": "Post Checkout repository",
+     "number": 38,
+     "started_at": "2026-10-29T15:13:40Z",
+     "status": "in_progress"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123525378375",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123525378657",
+   "completed_at": "2026-10-29T15:12:56Z",
+   "conclusion": "cancelled",
+   "created_at": "2026-10-29T14:53:53Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123525378657",
+   "id": 123525378657,
+   "labels": [
+    "ubuntu-slim"
+   ],
+   "name": "LLK perf merge gate (blackhole) / Compare perf: current vs main",
+   "node_id": "CR_kwDOI9Wqc88AAAAcwq-yYQ",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 0,
+   "runner_group_name": "GitHub Actions",
+   "runner_id": 1010767191,
+   "runner_name": "GitHub Actions 1010767191",
+   "started_at": "2026-10-29T14:53:58Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T14:54:04Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T14:54:01Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:32Z",
+     "conclusion": "cancelled",
+     "name": "Checkout repository",
+     "number": 2,
+     "started_at": "2026-10-29T14:54:04Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:33Z",
+     "conclusion": "skipped",
+     "name": "Set up Python",
+     "number": 3,
+     "started_at": "2026-10-29T15:10:33Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:33Z",
+     "conclusion": "skipped",
+     "name": "Install dependencies",
+     "number": 4,
+     "started_at": "2026-10-29T15:10:33Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:33Z",
+     "conclusion": "skipped",
+     "name": "Check the measurement is complete",
+     "number": 5,
+     "started_at": "2026-10-29T15:10:33Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:35Z",
+     "conclusion": "skipped",
+     "name": "Read the baseline from the warehouse",
+     "number": 6,
+     "started_at": "2026-10-29T15:10:33Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:35Z",
+     "conclusion": "skipped",
+     "name": "Download the baseline from a workflow run",
+     "number": 7,
+     "started_at": "2026-10-29T15:10:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:35Z",
+     "conclusion": "skipped",
+     "name": "Record the baseline run as the baseline",
+     "number": 8,
+     "started_at": "2026-10-29T15:10:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:35Z",
+     "conclusion": "skipped",
+     "name": "Take the baseline from this run's artifacts",
+     "number": 9,
+     "started_at": "2026-10-29T15:10:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:35Z",
+     "conclusion": "skipped",
+     "name": "Record the branch point as the baseline",
+     "number": 10,
+     "started_at": "2026-10-29T15:10:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:35Z",
+     "conclusion": "skipped",
+     "name": "Download the PR's perf data",
+     "number": 11,
+     "started_at": "2026-10-29T15:10:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:35Z",
+     "conclusion": "skipped",
+     "name": "Check that perf data arrived",
+     "number": 12,
+     "started_at": "2026-10-29T15:10:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:36Z",
+     "conclusion": "skipped",
+     "name": "Compare regressions",
+     "number": 13,
+     "started_at": "2026-10-29T15:10:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:10:36Z",
+     "conclusion": "skipped",
+     "name": "Comment on PR",
+     "number": 14,
+     "started_at": "2026-10-29T15:10:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:12:08Z",
+     "conclusion": "success",
+     "name": "Upload the gate report",
+     "number": 15,
+     "started_at": "2026-10-29T15:10:36Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:12:09Z",
+     "conclusion": "skipped",
+     "name": "Build the Slack payload",
+     "number": 16,
+     "started_at": "2026-10-29T15:12:08Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:12:09Z",
+     "conclusion": "skipped",
+     "name": "Upload the Slack part",
+     "number": 17,
+     "started_at": "2026-10-29T15:12:09Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:12:09Z",
+     "conclusion": "skipped",
+     "name": "Notify Slack",
+     "number": 18,
+     "started_at": "2026-10-29T15:12:09Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:12:18Z",
+     "conclusion": "failure",
+     "name": "Gate verdict",
+     "number": 19,
+     "started_at": "2026-10-29T15:12:09Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:12:51Z",
+     "conclusion": "success",
+     "name": "Post Checkout repository",
+     "number": 38,
+     "started_at": "2026-10-29T15:12:18Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:12:54Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 39,
+     "started_at": "2026-10-29T15:12:51Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123525378657",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123537448104",
+   "completed_at": "2026-10-29T15:14:35Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T15:14:04Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123537448104",
+   "id": 123537448104,
+   "labels": [
+    "ubuntu-slim"
+   ],
+   "name": "LLK perf merge gate (Slack)",
+   "node_id": "CR_kwDOI9Wqc88AAAAcw2fcqA",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 0,
+   "runner_group_name": "GitHub Actions",
+   "runner_id": 1010768098,
+   "runner_name": "GitHub Actions 1010768098",
+   "started_at": "2026-10-29T15:14:09Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T15:14:13Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T15:14:10Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:17Z",
+     "conclusion": "success",
+     "name": "Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+     "number": 2,
+     "started_at": "2026-10-29T15:14:13Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:28Z",
+     "conclusion": "success",
+     "name": "Run actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405",
+     "number": 3,
+     "started_at": "2026-10-29T15:14:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:29Z",
+     "conclusion": "success",
+     "name": "Download the per-arch verdicts",
+     "number": 4,
+     "started_at": "2026-10-29T15:14:28Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:29Z",
+     "conclusion": "success",
+     "name": "Download the per-arch reports",
+     "number": 5,
+     "started_at": "2026-10-29T15:14:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:30Z",
+     "conclusion": "success",
+     "name": "Build the Slack payload",
+     "number": 6,
+     "started_at": "2026-10-29T15:14:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:30Z",
+     "conclusion": "success",
+     "name": "Notify Slack",
+     "number": 7,
+     "started_at": "2026-10-29T15:14:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:31Z",
+     "conclusion": "success",
+     "name": "Post Run actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405",
+     "number": 13,
+     "started_at": "2026-10-29T15:14:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:32Z",
+     "conclusion": "success",
+     "name": "Post Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+     "number": 14,
+     "started_at": "2026-10-29T15:14:31Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:32Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 15,
+     "started_at": "2026-10-29T15:14:32Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123537448104",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/123537448167",
+   "completed_at": "2026-10-29T15:14:55Z",
+   "conclusion": "success",
+   "created_at": "2026-10-29T15:14:04Z",
+   "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+   "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/40893366884/job/123537448167",
+   "id": 123537448167,
+   "labels": [
+    "ubuntu-slim"
+   ],
+   "name": "Merge Gate Status",
+   "node_id": "CR_kwDOI9Wqc88AAAAcw2fc5w",
+   "run_attempt": 1,
+   "run_id": 40893366884,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/40893366884",
+   "runner_group_id": 0,
+   "runner_group_name": "GitHub Actions",
+   "runner_id": 1010768099,
+   "runner_name": "GitHub Actions 1010768099",
+   "started_at": "2026-10-29T15:14:09Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-29T15:14:52Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-29T15:14:11Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:54Z",
+     "conclusion": "success",
+     "name": "Check if all jobs passed",
+     "number": 2,
+     "started_at": "2026-10-29T15:14:53Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:54Z",
+     "conclusion": "skipped",
+     "name": "Run tenstorrent/tt-metal/.github/actions/slack-report-merge-gate@main",
+     "number": 3,
+     "started_at": "2026-10-29T15:14:54Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:54Z",
+     "conclusion": "skipped",
+     "name": "Run tenstorrent/tt-metal/.github/actions/slack-report-merge-gate-main@main",
+     "number": 4,
+     "started_at": "2026-10-29T15:14:54Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-29T15:14:54Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 5,
+     "started_at": "2026-10-29T15:14:54Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/123537448167",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing ldjurovicTT: ea907cc732f7184585ea9b2b1f6b47cb59733509"
+  }
+ ],
+ "total_count": 23
+}

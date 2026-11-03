@@ -1,0 +1,265 @@
+{
+ "artifacts": [
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12907676095/zip",
+   "created_at": "2026-10-29T14:55:24Z",
+   "digest": "sha256:5e86af4e4017eb94a597c3061689fc23fb6d292c0c177398683902f2bdd2cc61",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12907676095,
+   "name": "perf-junit-report-quasar-compile",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNzY3NjA5NQ==",
+   "size_in_bytes": 43759,
+   "updated_at": "2026-10-29T14:55:24Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12907676095",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12907535596/zip",
+   "created_at": "2026-10-29T14:50:55Z",
+   "digest": "sha256:43d477f140b68df3e3f71d2e172f0008f791631ffa8baf223e289876824b25bc",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12907535596,
+   "name": "perf-junit-report-blackhole-3",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNzUzNTU5Ng==",
+   "size_in_bytes": 663884,
+   "updated_at": "2026-10-29T14:50:55Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12907535596",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12907041829/zip",
+   "created_at": "2026-10-29T14:51:49Z",
+   "digest": "sha256:f3e410f3b7dd7eef2c2647edc961aa5bc23ac3709cbe49cafd0b6c07f7a86a68",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12907041829,
+   "name": "perf-junit-report-blackhole-2",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNzA0MTgyOQ==",
+   "size_in_bytes": 93515,
+   "updated_at": "2026-10-29T14:51:49Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12907041829",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906856374/zip",
+   "created_at": "2026-10-29T14:49:18Z",
+   "digest": "sha256:617398bff039d26b395c1fad1a3e1ad38869b555c03366652210e12a5027a0e2",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12906856374,
+   "name": "perf-data-wormhole-3",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNjg1NjM3NA==",
+   "size_in_bytes": 1331989,
+   "updated_at": "2026-10-29T14:49:18Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906856374",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906747043/zip",
+   "created_at": "2026-10-29T14:49:25Z",
+   "digest": "sha256:e5ca0531525b9781758fc15eefe2c2fff7b190ca18cb96b65a1d948d941097c2",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12906747043,
+   "name": "perf-junit-report-wormhole-2",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNjc0NzA0Mw==",
+   "size_in_bytes": 223266,
+   "updated_at": "2026-10-29T14:49:25Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906747043",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906627280/zip",
+   "created_at": "2026-10-29T14:49:51Z",
+   "digest": "sha256:c43a6f255b4a97b6104b6be806b94cd555a75827e0431424d9130ecda320baa2",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12906627280,
+   "name": "perf-junit-report-wormhole-1",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNjYyNzI4MA==",
+   "size_in_bytes": 182635,
+   "updated_at": "2026-10-29T14:49:51Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906627280",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906621807/zip",
+   "created_at": "2026-10-29T14:49:49Z",
+   "digest": "sha256:86d2160489b774cdccc565610a2b08f58a6282fcf8b7844d6b1024f70d08c1d2",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12906621807,
+   "name": "perf-data-wormhole-1",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNjYyMTgwNw==",
+   "size_in_bytes": 238344,
+   "updated_at": "2026-10-29T14:49:49Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906621807",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906557752/zip",
+   "created_at": "2026-10-29T14:50:53Z",
+   "digest": "sha256:399928aa3058a0c5b01a230a7c495b9099f1880896407c8c0697876da2bfc796",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12906557752,
+   "name": "perf-data-blackhole-3",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNjU1Nzc1Mg==",
+   "size_in_bytes": 1745235,
+   "updated_at": "2026-10-29T14:50:53Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906557752",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906408526/zip",
+   "created_at": "2026-10-29T14:52:39Z",
+   "digest": "sha256:d7e335d62f34fab7d59af54e49f70aa5df26a6cae402e8fea322d92f43c63ec9",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12906408526,
+   "name": "perf-junit-report-blackhole-1",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNjQwODUyNg==",
+   "size_in_bytes": 221044,
+   "updated_at": "2026-10-29T14:52:39Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906408526",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906383666/zip",
+   "created_at": "2026-10-29T14:52:37Z",
+   "digest": "sha256:8bc4989956afa5305ac6d530bbdd500d149e68d51a9a935b2cba90de3ab368e9",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12906383666,
+   "name": "perf-data-blackhole-1",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNjM4MzY2Ng==",
+   "size_in_bytes": 261546,
+   "updated_at": "2026-10-29T14:52:37Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906383666",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906147419/zip",
+   "created_at": "2026-10-29T14:49:21Z",
+   "digest": "sha256:94ff708c5e55d53845a5ebc17d65b465e16ea003b70dc2929eb84a55b866ad44",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12906147419,
+   "name": "perf-junit-report-wormhole-3",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNjE0NzQxOQ==",
+   "size_in_bytes": 490943,
+   "updated_at": "2026-10-29T14:49:21Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906147419",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906009839/zip",
+   "created_at": "2026-10-29T14:51:47Z",
+   "digest": "sha256:e3cbca5ef601c79f2abd16868395c4cbedc2a37f9d5197f00c375d26dd20d93b",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12906009839,
+   "name": "perf-data-blackhole-2",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNjAwOTgzOQ==",
+   "size_in_bytes": 178841,
+   "updated_at": "2026-10-29T14:51:47Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12906009839",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  },
+  {
+   "archive_download_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12905674236/zip",
+   "created_at": "2026-10-29T14:49:23Z",
+   "digest": "sha256:498710de2d0843fd09a710d82f3204a1426d964698fd82cc8777839ff26d06ed",
+   "expired": false,
+   "expires_at": "2027-01-27T14:37:38Z",
+   "id": 12905674236,
+   "name": "perf-data-wormhole-2",
+   "node_id": "MDg6QXJ0aWZhY3QxMjkwNTY3NDIzNg==",
+   "size_in_bytes": 601804,
+   "updated_at": "2026-10-29T14:49:23Z",
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/artifacts/12905674236",
+   "workflow_run": {
+    "head_branch": "gh-readonly-queue/main/pr-60920-33cef4b9f750ac94fce9dbf090bada3bbee21e6e",
+    "head_repository_id": 601205363,
+    "head_sha": "ea907cc732f7184585ea9b2b1f6b47cb59733509",
+    "id": 40893366884,
+    "repository_id": 601205363
+   }
+  }
+ ],
+ "total_count": 13
+}

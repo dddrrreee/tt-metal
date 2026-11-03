@@ -1,0 +1,38 @@
+[
+ {
+  "annotation_level": "failure",
+  "blob_href": "https://github.com/tenstorrent/tt-metal/blob/ea907cc732f7184585ea9b2b1f6b47cb59733509/.github",
+  "end_column": null,
+  "end_line": 1,
+  "message": "The job has exceeded the maximum execution time of 15m0s",
+  "path": ".github",
+  "raw_details": "",
+  "start_column": null,
+  "start_line": 1,
+  "title": ""
+ },
+ {
+  "annotation_level": "failure",
+  "blob_href": "https://github.com/tenstorrent/tt-metal/blob/ea907cc732f7184585ea9b2b1f6b47cb59733509/.github",
+  "end_column": null,
+  "end_line": 45,
+  "message": "Process completed with exit code 1.",
+  "path": ".github",
+  "raw_details": "",
+  "start_column": null,
+  "start_line": 45,
+  "title": ""
+ },
+ {
+  "annotation_level": "failure",
+  "blob_href": "https://github.com/tenstorrent/tt-metal/blob/ea907cc732f7184585ea9b2b1f6b47cb59733509/.github",
+  "end_column": null,
+  "end_line": 68,
+  "message": "The operation was canceled.",
+  "path": ".github",
+  "raw_details": "",
+  "start_column": null,
+  "start_line": 68,
+  "title": ""
+ }
+]

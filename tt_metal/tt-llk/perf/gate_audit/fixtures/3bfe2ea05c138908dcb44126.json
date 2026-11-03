@@ -1,0 +1,38 @@
+[
+ {
+  "annotation_level": "failure",
+  "blob_href": "https://github.com/tenstorrent/tt-metal/blob/e06b10853d5fbf62e38d62934ab1e185449be296/.github",
+  "end_column": null,
+  "end_line": 52,
+  "message": "Process completed with exit code 1.",
+  "path": ".github",
+  "raw_details": "",
+  "start_column": null,
+  "start_line": 52,
+  "title": ""
+ },
+ {
+  "annotation_level": "failure",
+  "blob_href": "https://github.com/tenstorrent/tt-metal/blob/e06b10853d5fbf62e38d62934ab1e185449be296/.github",
+  "end_column": null,
+  "end_line": 50,
+  "message": "A blackhole measuring leg did not complete: llk_perf_merge_gate_blackhole group 2/3 [bh_p150b_civ2_viommu_prio]: cancelled after 15 min, most likely at its timeout. The gate compared nothing.",
+  "path": ".github",
+  "raw_details": "",
+  "start_column": null,
+  "start_line": 50,
+  "title": ""
+ },
+ {
+  "annotation_level": "failure",
+  "blob_href": "https://github.com/tenstorrent/tt-metal/blob/e06b10853d5fbf62e38d62934ab1e185449be296/.github",
+  "end_column": null,
+  "end_line": 58,
+  "message": "A blackhole measuring leg did not complete: llk_perf_merge_gate_blackhole group 2/3 [bh_p150b_civ2_viommu_prio]: cancelled after 15 min, most likely at its timeout. The gate compares nothing.",
+  "path": ".github",
+  "raw_details": "",
+  "start_column": null,
+  "start_line": 58,
+  "title": ""
+ }
+]

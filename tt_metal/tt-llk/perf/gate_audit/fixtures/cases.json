@@ -1,0 +1,72 @@
+[
+ {
+  "expect": {
+   "blackhole": null,
+   "wormhole": null
+  },
+  "expect_filter": [
+   true,
+   true
+  ],
+  "label": "good: both arches measured and compared",
+  "pr": 63534,
+  "run_id": 41593382741,
+  "sha": "d0ca81a07e5ab51afac31973555e29e9c7af64b6"
+ },
+ {
+  "expect": {
+   "blackhole": "skipped",
+   "wormhole": "skipped"
+  },
+  "expect_filter": [
+   true,
+   false
+  ],
+  "label": "skipped: changes job said no LLK perf input changed",
+  "pr": 63474,
+  "run_id": 41065775823,
+  "sha": "18a85116ef68ee1c945b2ef75069e0e798f5a65b"
+ },
+ {
+  "expect": {
+   "blackhole": "incomplete",
+   "wormhole": null
+  },
+  "expect_filter": [
+   true,
+   true
+  ],
+  "label": "incomplete: a Blackhole leg cancelled at its timeout",
+  "pr": 62785,
+  "run_id": 40637279221,
+  "sha": "e06b10853d5"
+ },
+ {
+  "expect": {
+   "blackhole": "incomplete",
+   "wormhole": "incomplete"
+  },
+  "expect_filter": [
+   true,
+   true
+  ],
+  "label": "incomplete: both gate jobs cancelled at the 15 min job timeout",
+  "pr": 60920,
+  "run_id": 40893366884,
+  "sha": "ea907cc732f"
+ },
+ {
+  "expect": {
+   "blackhole": null,
+   "wormhole": "failed"
+  },
+  "expect_filter": [
+   true,
+   true
+  ],
+  "label": "failed: Wormhole gate could not download the perf data",
+  "pr": 61006,
+  "run_id": 40858930399,
+  "sha": "f1f7bbb8e8a"
+ }
+]

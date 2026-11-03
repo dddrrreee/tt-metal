@@ -1,0 +1,26 @@
+[
+ {
+  "annotation_level": "failure",
+  "blob_href": "https://github.com/tenstorrent/tt-metal/blob/f1f7bbb8e8ac93686748be4ba522103988e23805/.github",
+  "end_column": null,
+  "end_line": 52,
+  "message": "Process completed with exit code 1.",
+  "path": ".github",
+  "raw_details": "",
+  "start_column": null,
+  "start_line": 52,
+  "title": ""
+ },
+ {
+  "annotation_level": "failure",
+  "blob_href": "https://github.com/tenstorrent/tt-metal/blob/f1f7bbb8e8ac93686748be4ba522103988e23805/.github",
+  "end_column": null,
+  "end_line": 30,
+  "message": "Unable to download artifact(s): API rate limit exceeded for installation. If you reach out to GitHub Support for help, please include the request ID 1280:15229E:207C3B5:6C0B79E:6AE32703 and timestamp 2026-10-29 10:59:19 UTC. For more on scraping GitHub and how it may affect your rights, please review our Terms of Service (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service) - https://docs.github.com/en/rest/using-the-rest-api/getting-started-with-the-rest-api#rate-limiting",
+  "path": ".github",
+  "raw_details": "",
+  "start_column": null,
+  "start_line": 30,
+  "title": ""
+ }
+]

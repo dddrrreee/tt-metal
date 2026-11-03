@@ -1,0 +1,218 @@
+{
+ "jobs": [
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/124096655945",
+   "completed_at": "2026-10-30T13:45:12Z",
+   "conclusion": "success",
+   "created_at": "2026-10-30T13:44:48Z",
+   "head_branch": "gh-readonly-queue/main/pr-63474-ab31699e9923ff610c3f6303d85e2f8fc45b55d1",
+   "head_sha": "18a85116ef68ee1c945b2ef75069e0e798f5a65b",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/41065775823/job/124096655945",
+   "id": 124096655945,
+   "labels": [
+    "ubuntu-slim"
+   ],
+   "name": "LLK perf merge gate (changes)",
+   "node_id": "CR_kwDOI9Wqc88AAAAc5LyySQ",
+   "run_attempt": 1,
+   "run_id": 41065775823,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/41065775823",
+   "runner_group_id": 0,
+   "runner_group_name": "GitHub Actions",
+   "runner_id": 1010836177,
+   "runner_name": "GitHub Actions 1010836177",
+   "started_at": "2026-10-30T13:44:50Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-30T13:44:52Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-30T13:44:51Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-30T13:45:09Z",
+     "conclusion": "success",
+     "name": "Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+     "number": 2,
+     "started_at": "2026-10-30T13:44:52Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-30T13:45:10Z",
+     "conclusion": "success",
+     "name": "Classify this entry's own changes",
+     "number": 3,
+     "started_at": "2026-10-30T13:45:09Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-30T13:45:10Z",
+     "conclusion": "success",
+     "name": "Post Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+     "number": 6,
+     "started_at": "2026-10-30T13:45:10Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-30T13:45:10Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 7,
+     "started_at": "2026-10-30T13:45:10Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/124096655945",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing nstojicTT: 18a85116ef68ee1c945b2ef75069e0e798f5a65b"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/124096893037",
+   "completed_at": "2026-10-30T13:45:12Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-30T13:45:13Z",
+   "head_branch": "gh-readonly-queue/main/pr-63474-ab31699e9923ff610c3f6303d85e2f8fc45b55d1",
+   "head_sha": "18a85116ef68ee1c945b2ef75069e0e798f5a65b",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/41065775823/job/124096893037",
+   "id": 124096893037,
+   "labels": [],
+   "name": "LLK perf merge gate (measure)",
+   "node_id": "CR_kwDOI9Wqc88AAAAc5MBQbQ",
+   "run_attempt": 1,
+   "run_id": 41065775823,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/41065775823",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-30T13:45:13Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/124096893037",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing nstojicTT: 18a85116ef68ee1c945b2ef75069e0e798f5a65b"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/124096893640",
+   "completed_at": "2026-10-30T13:45:12Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-30T13:45:13Z",
+   "head_branch": "gh-readonly-queue/main/pr-63474-ab31699e9923ff610c3f6303d85e2f8fc45b55d1",
+   "head_sha": "18a85116ef68ee1c945b2ef75069e0e798f5a65b",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/41065775823/job/124096893640",
+   "id": 124096893640,
+   "labels": [],
+   "name": "LLK perf merge gate (${{ matrix.arch }})",
+   "node_id": "CR_kwDOI9Wqc88AAAAc5MBSyA",
+   "run_attempt": 1,
+   "run_id": 41065775823,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/41065775823",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-30T13:45:13Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/124096893640",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing nstojicTT: 18a85116ef68ee1c945b2ef75069e0e798f5a65b"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/124096894851",
+   "completed_at": "2026-10-30T13:45:12Z",
+   "conclusion": "skipped",
+   "created_at": "2026-10-30T13:45:13Z",
+   "head_branch": "gh-readonly-queue/main/pr-63474-ab31699e9923ff610c3f6303d85e2f8fc45b55d1",
+   "head_sha": "18a85116ef68ee1c945b2ef75069e0e798f5a65b",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/41065775823/job/124096894851",
+   "id": 124096894851,
+   "labels": [
+    "ubuntu-slim"
+   ],
+   "name": "LLK perf merge gate (Slack)",
+   "node_id": "CR_kwDOI9Wqc88AAAAc5MBXgw",
+   "run_attempt": 1,
+   "run_id": 41065775823,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/41065775823",
+   "runner_group_id": null,
+   "runner_group_name": null,
+   "runner_id": null,
+   "runner_name": null,
+   "started_at": "2026-10-30T13:45:13Z",
+   "status": "completed",
+   "steps": [],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/124096894851",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing nstojicTT: 18a85116ef68ee1c945b2ef75069e0e798f5a65b"
+  },
+  {
+   "check_run_url": "https://api.github.com/repos/tenstorrent/tt-metal/check-runs/124098109283",
+   "completed_at": "2026-10-30T13:48:19Z",
+   "conclusion": "success",
+   "created_at": "2026-10-30T13:47:39Z",
+   "head_branch": "gh-readonly-queue/main/pr-63474-ab31699e9923ff610c3f6303d85e2f8fc45b55d1",
+   "head_sha": "18a85116ef68ee1c945b2ef75069e0e798f5a65b",
+   "html_url": "https://github.com/tenstorrent/tt-metal/actions/runs/41065775823/job/124098109283",
+   "id": 124098109283,
+   "labels": [
+    "ubuntu-slim"
+   ],
+   "name": "Merge Gate Status",
+   "node_id": "CR_kwDOI9Wqc88AAAAc5NLfYw",
+   "run_attempt": 1,
+   "run_id": 41065775823,
+   "run_url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/runs/41065775823",
+   "runner_group_id": 0,
+   "runner_group_name": "GitHub Actions",
+   "runner_id": 1010836383,
+   "runner_name": "GitHub Actions 1010836383",
+   "started_at": "2026-10-30T13:47:43Z",
+   "status": "completed",
+   "steps": [
+    {
+     "completed_at": "2026-10-30T13:48:16Z",
+     "conclusion": "success",
+     "name": "Set up job",
+     "number": 1,
+     "started_at": "2026-10-30T13:47:45Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-30T13:48:17Z",
+     "conclusion": "success",
+     "name": "Check if all jobs passed",
+     "number": 2,
+     "started_at": "2026-10-30T13:48:16Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-30T13:48:17Z",
+     "conclusion": "skipped",
+     "name": "Run tenstorrent/tt-metal/.github/actions/slack-report-merge-gate@main",
+     "number": 3,
+     "started_at": "2026-10-30T13:48:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-30T13:48:17Z",
+     "conclusion": "skipped",
+     "name": "Run tenstorrent/tt-metal/.github/actions/slack-report-merge-gate-main@main",
+     "number": 4,
+     "started_at": "2026-10-30T13:48:17Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-10-30T13:48:17Z",
+     "conclusion": "success",
+     "name": "Complete job",
+     "number": 5,
+     "started_at": "2026-10-30T13:48:17Z",
+     "status": "completed"
+    }
+   ],
+   "url": "https://api.github.com/repos/tenstorrent/tt-metal/actions/jobs/124098109283",
+   "workflow_name": "[Merge Queue] \ud83d\udcab Processing nstojicTT: 18a85116ef68ee1c945b2ef75069e0e798f5a65b"
+  }
+ ],
+ "total_count": 5
+}
