@@ -267,6 +267,7 @@ jobs:
           sparse-checkout: |
             .github
             tt_metal/tt-llk/perf
+            tt_metal/tt-llk/tests/python_tests
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.10'
