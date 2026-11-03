@@ -980,7 +980,21 @@ inline void unpack_to_dest_tile_done(std::uint32_t &context_id, const std::uint3
 
     // Due to a hardware bug (TEN-3868), we need to have one unpack-to-srcA instruction after the last unpack-to-dest instruction.
     TTI_SETADCXX(p_setadc::UNP_A, FACE_C_DIM - 1, 0x0);
-    TT_UNPACR(SrcA, 0, 0, context_id, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 1, 0, 0, 0, 1);
+    // The workaround writes SrcA: drain the prior unpack and clear its destination counters.
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
+    TTI_STALLWAIT(p_stall::STALL_TDMA, p_stall::UNPACK);
+    TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1100);
+    // Use a Src-compatible format for the unused data, then restore the original formats.
+    TTI_RDCFG(p_gpr_unpack::TMP_LO, THCON_SEC0_REG2_Out_data_format_ADDR32);
+    TTI_RDCFG(p_gpr_unpack::TMP_HI, THCON_SEC0_REG0_TileDescriptor_ADDR32);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Out_data_format_RMW>(to_underlying(DataFormat::UInt16));
+    cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0xF>(to_underlying(DataFormat::UInt16));
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::THCON);
+    // The thread context offset already selects the active context.
+    TT_UNPACR(SrcA, 0, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 1, 0, 0, 0, 1);
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
+    TTI_WRCFG(p_gpr_unpack::TMP_HI, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32);
+    TTI_WRCFG(p_gpr_unpack::TMP_LO, p_cfg::WRCFG_32b, THCON_SEC0_REG2_Out_data_format_ADDR32);
     TTI_SETADCXX(p_setadc::UNP_A, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
 }
 
