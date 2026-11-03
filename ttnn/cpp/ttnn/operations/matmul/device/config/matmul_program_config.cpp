@@ -923,7 +923,8 @@ inline MatmulProgramConfig generate_matmul_program_config(
     const std::optional<const CoreCoord> user_core_coord,
     const std::optional<unary::UnaryWithParam>& user_fused_activation,
     const bool user_run_batched,
-    const tt::tt_metal::DataType output_dtype) {
+    const tt::tt_metal::DataType output_dtype,
+    const bool has_sub_device) {
     // For sharded A, derive config from the tensor's shard_spec (not user core_grid).
     if (input_tensor_a.is_sharded()) {
         bool bmm = user_run_batched;
@@ -956,7 +957,7 @@ inline MatmulProgramConfig generate_matmul_program_config(
     }
     tt::tt_metal::distributed::MeshDevice* device = input_tensor_a.device();
     auto compute_with_storage_grid_size = device->compute_with_storage_grid_size();
-    return create_simple_matmul_program_config(
+    auto config = create_simple_matmul_program_config(
         input_tensor_a,
         input_tensor_b,
         transpose_a,
@@ -966,6 +967,60 @@ inline MatmulProgramConfig generate_matmul_program_config(
         compute_with_storage_grid_size,
         mem_config,
         output_dtype);
+    const auto& a_shape = utilities::get_matmul_tensor_padded_shape(input_tensor_a, transpose_a);
+    const auto& b_shape = utilities::get_matmul_tensor_padded_shape(input_tensor_b, transpose_b);
+    const auto in0_tile = utilities::get_matmul_tile(input_tensor_a, transpose_a);
+    const auto in1_tile = utilities::get_matmul_tile(input_tensor_b, transpose_b);
+    const auto batch_size = get_batch_size(a_shape);
+    const auto Mt = utilities::get_M_dim(a_shape, in0_tile, /*fuse_batch=*/false);
+    const auto Nt = utilities::get_N_dim(b_shape, in1_tile);
+    const auto num_cores = compute_with_storage_grid_size.x * compute_with_storage_grid_size.y;
+    const auto is_dram_interleaved = [](const MemoryConfig& memory_config) {
+        return memory_config.buffer_type() == BufferType::DRAM &&
+               memory_config.memory_layout() == TensorMemoryLayout::INTERLEAVED;
+    };
+    // Multicast spreads one batch over the grid and loops over B. When a batch underfills the grid and
+    // B >= its output tiles, batched reuse spreads batches across cores without losing parallel work.
+
+    // Reuse splits from the grid origin and ignores sub-devices.
+    if (!has_sub_device && device->get_active_sub_device_manager_id() == device->get_default_sub_device_manager_id() &&
+        batch_size > 1 && batch_size == get_batch_size(b_shape) && Mt > 0 && Nt > 0 && batch_size >= Mt * Nt &&
+        Mt * Nt < num_cores && Nt <= 32 && !transpose_a && !transpose_b && !user_fused_activation.has_value() &&
+        bias_single_tile_size == 0 && input_tensor_a.dtype() == tt::tt_metal::DataType::BFLOAT16 &&
+        input_tensor_b.dtype() == tt::tt_metal::DataType::BFLOAT16 &&
+        output_dtype == tt::tt_metal::DataType::BFLOAT16 && in0_tile.get_height() == ttnn::TILE_SIZE &&
+        in0_tile.get_width() == ttnn::TILE_SIZE && in1_tile.get_height() == ttnn::TILE_SIZE &&
+        in1_tile.get_width() == ttnn::TILE_SIZE && !in0_tile.get_transpose_within_face() &&
+        !in0_tile.get_transpose_of_faces() && !in1_tile.get_transpose_within_face() &&
+        !in1_tile.get_transpose_of_faces() && is_dram_interleaved(input_tensor_a.memory_config()) &&
+        is_dram_interleaved(input_tensor_b.memory_config()) && is_dram_interleaved(mem_config)) {
+        const auto* mcast_1d = std::get_if<MatmulMultiCoreReuseMultiCast1DProgramConfig>(&config);
+        const auto in0_block_w =
+            mcast_1d ? mcast_1d->in0_block_w : std::get<MatmulMultiCoreReuseMultiCastProgramConfig>(config).in0_block_w;
+        // Retain the original K blocking so batch distribution does not change rounding.
+        if (can_cbs_fit_in_l1(
+                input_tensor_a,
+                input_tensor_b,
+                transpose_a,
+                transpose_b,
+                bias_single_tile_size,
+                Mt,
+                Nt,
+                in0_block_w,
+                compute_kernel_config,
+                output_dtype)) {
+            const auto [out_subblock_h, out_subblock_w] =
+                get_subblock_sizes(Mt, Nt, get_fp32_dest_acc_en(compute_kernel_config));
+            return MatmulMultiCoreReuseProgramConfig{
+                .compute_with_storage_grid_size = compute_with_storage_grid_size,
+                .in0_block_w = in0_block_w,
+                .out_subblock_h = out_subblock_h,
+                .out_subblock_w = out_subblock_w,
+                .per_core_M = Mt,
+                .per_core_N = Nt};
+        }
+    }
+    return config;
 }
 
 /***************************************************************************************/
@@ -1033,7 +1088,8 @@ MatmulProgramConfig get_program_config(
         attributes.user_core_coord,
         attributes.user_fused_activation,
         attributes.user_run_batched,
-        attributes.output_dtype.value_or(input_tensor_a.dtype()));
+        attributes.output_dtype.value_or(input_tensor_a.dtype()),
+        attributes.sub_device_id.has_value());
     log_debug(tt::LogOp, "Auto generated program config: {}", config);
 
     // Sanity checks for matmul program configs

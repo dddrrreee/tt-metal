@@ -48,6 +48,8 @@
 #include "ttnn/operations/core/core.hpp"
 #include "ttnn/operations/creation/creation.hpp"
 #include "ttnn/operations/matmul/matmul.hpp"
+#include "ttnn/operations/matmul/device/config/matmul_program_config.hpp"
+#include "ttnn/operations/matmul/device/utilities/matmul_utilities.hpp"
 #include "ttnn/tensor/shape/shape.hpp"
 #include "ttnn/tensor/tensor.hpp"
 #include "ttnn/tensor/types.hpp"
@@ -1131,6 +1133,153 @@ TEST_F(MatmulSmoke, BlockSharded2DTransposeAuto) {
     const float atol = K * 0.02f > 1.0f ? K * 0.02f : 1.0f;  // = 1.28
     detail::expect_close(
         detail::to_float_vector(out), detail::cpu_matmul(a_data, b_data, 1, M, K, N), 0.05f, atol, 0.999f);
+}
+
+TEST_F(MatmulSmoke, DefaultBatchReusePreservesKBlocking) {
+    // Covers default batched reuse selection and preservation of the multicast K block.
+    for (const auto& shape : std::vector<std::array<uint32_t, 4>>{
+             {32, 32, 64, 32},
+             {4, 64, 64, 64},
+             {64, 64, 512, 64},
+             {32, 128, 128, 128},
+             {17, 160, 288, 96},
+             {8, 33, 65, 47},
+             {8, 63, 111, 65},
+             {9, 96, 96, 96},
+             {4, 64, device_->compute_with_storage_grid_size().x * 64, 64},
+             {32, 32, 128, 1024}}) {
+        const auto [batch, m, k, n] = shape;
+        SCOPED_TRACE(fmt::format("B={}, M={}, K={}, N={}", batch, m, k, n));
+        const auto a = ttnn::empty(
+            ttnn::Shape{batch, m, k}, DataType::BFLOAT16, Layout::TILE, device_, detail::dram_interleaved());
+        const auto b = ttnn::empty(
+            ttnn::Shape{batch, k, n}, DataType::BFLOAT16, Layout::TILE, device_, detail::dram_interleaved());
+        const ttnn::prim::MatmulParams attributes{
+            .compute_kernel_config = ttnn::ComputeKernelConfig{
+                .math_fidelity = tt::tt_metal::MathFidelity::HiFi2, .math_approx_mode = false, .packer_l1_acc = true}};
+        const auto original = create_simple_matmul_program_config(
+            a,
+            b,
+            false,
+            false,
+            0,
+            attributes.compute_kernel_config,
+            device_->compute_with_storage_grid_size(),
+            attributes.output_mem_config,
+            DataType::BFLOAT16);
+        const auto selected = get_program_config(a, b, false, false, 0, attributes);
+        ASSERT_TRUE(std::holds_alternative<MatmulMultiCoreReuseProgramConfig>(selected));
+        const auto& reuse = std::get<MatmulMultiCoreReuseProgramConfig>(selected);
+        const auto* mcast_1d = std::get_if<MatmulMultiCoreReuseMultiCast1DProgramConfig>(&original);
+        const auto original_k = mcast_1d ? mcast_1d->in0_block_w
+                                         : std::get<MatmulMultiCoreReuseMultiCastProgramConfig>(original).in0_block_w;
+        EXPECT_EQ(reuse.in0_block_w, original_k);
+        EXPECT_EQ(reuse.per_core_M, (m + 31) / 32);
+        EXPECT_EQ(reuse.per_core_N, (n + 31) / 32);
+    }
+}
+
+TEST_F(MatmulSmoke, DefaultBatchReuseKeepsOtherFormatsAndFusedBias) {
+    // Covers default-selector exclusions for operand/output formats, memory placement and fused bias.
+    const MemoryConfig l1{tt::tt_metal::TensorMemoryLayout::INTERLEAVED, BufferType::L1};
+    for (uint32_t exclusion = 0; exclusion < 7; ++exclusion) {
+        SCOPED_TRACE(exclusion);
+        const auto a_dtype = exclusion == 0 ? DataType::BFLOAT8_B : DataType::BFLOAT16;
+        const auto b_dtype = exclusion == 1 ? DataType::BFLOAT8_B : DataType::BFLOAT16;
+        const auto out_dtype = exclusion == 2 ? DataType::BFLOAT8_B : DataType::BFLOAT16;
+        const auto a = ttnn::empty(
+            ttnn::Shape{4, 64, 64}, a_dtype, Layout::TILE, device_, exclusion == 3 ? l1 : detail::dram_interleaved());
+        const auto b = ttnn::empty(
+            ttnn::Shape{4, 64, 64}, b_dtype, Layout::TILE, device_, exclusion == 4 ? l1 : detail::dram_interleaved());
+        const ttnn::prim::MatmulParams attributes{
+            .output_mem_config = exclusion == 5 ? l1 : detail::dram_interleaved(),
+            .output_dtype = out_dtype,
+            .compute_kernel_config = ttnn::ComputeKernelConfig{
+                .math_fidelity = tt::tt_metal::MathFidelity::HiFi2, .math_approx_mode = false, .packer_l1_acc = true}};
+        const uint32_t bias_tile_size = exclusion == 6 ? 2048 : 0;
+        const auto original = create_simple_matmul_program_config(
+            a,
+            b,
+            false,
+            false,
+            bias_tile_size,
+            attributes.compute_kernel_config,
+            device_->compute_with_storage_grid_size(),
+            attributes.output_mem_config,
+            out_dtype);
+        const auto selected = get_program_config(a, b, false, false, bias_tile_size, attributes);
+        EXPECT_FALSE(std::holds_alternative<MatmulMultiCoreReuseProgramConfig>(selected));
+        EXPECT_EQ(fmt::format("{}", selected), fmt::format("{}", original));
+    }
+}
+
+TEST_F(MatmulSmoke, DefaultBatchReuseFallsBackWhenCircularBuffersDoNotFit) {
+    // Covers default-selector fallback when full-batch reuse circular buffers exceed L1 capacity.
+    const auto grid = device_->compute_with_storage_grid_size();
+    const uint32_t k = grid.x * 60 * 32;
+    const auto a =
+        ttnn::empty(ttnn::Shape{16, 128, k}, DataType::BFLOAT16, Layout::TILE, device_, detail::dram_interleaved());
+    const auto b =
+        ttnn::empty(ttnn::Shape{16, k, 128}, DataType::BFLOAT16, Layout::TILE, device_, detail::dram_interleaved());
+    const ttnn::prim::MatmulParams attributes{
+        .compute_kernel_config = ttnn::ComputeKernelConfig{
+            .math_fidelity = tt::tt_metal::MathFidelity::HiFi2, .math_approx_mode = false, .packer_l1_acc = true}};
+    const auto original = create_simple_matmul_program_config(
+        a,
+        b,
+        false,
+        false,
+        0,
+        attributes.compute_kernel_config,
+        grid,
+        attributes.output_mem_config,
+        DataType::BFLOAT16);
+    ASSERT_TRUE(std::holds_alternative<MatmulMultiCoreReuseMultiCastProgramConfig>(original));
+    const auto k_block = std::get<MatmulMultiCoreReuseMultiCastProgramConfig>(original).in0_block_w;
+    ASSERT_GE(
+        utilities::get_estimated_size_of_cbs(
+            4,
+            4,
+            k_block,
+            a,
+            b,
+            false,
+            false,
+            utilities::estimate_interm_tile_size(attributes.compute_kernel_config, DataType::BFLOAT16),
+            0),
+        utilities::get_max_l1_space(a));
+    const auto selected = get_program_config(a, b, false, false, 0, attributes);
+    EXPECT_EQ(fmt::format("{}", selected), fmt::format("{}", original));
+}
+
+TEST_F(MatmulSmoke, DefaultBatchReuseKeepsWideOutputs) {
+    // Covers the default selector's multicast route for output widths beyond the reuse limit.
+    for (const uint32_t n_tiles : {33, 64, 109}) {
+        SCOPED_TRACE(n_tiles);
+        const auto a = ttnn::empty(
+            ttnn::Shape{n_tiles, 32, 128}, DataType::BFLOAT16, Layout::TILE, device_, detail::dram_interleaved());
+        const auto b = ttnn::empty(
+            ttnn::Shape{n_tiles, 128, n_tiles * 32},
+            DataType::BFLOAT16,
+            Layout::TILE,
+            device_,
+            detail::dram_interleaved());
+        const ttnn::prim::MatmulParams attributes{
+            .compute_kernel_config = ttnn::ComputeKernelConfig{
+                .math_fidelity = tt::tt_metal::MathFidelity::HiFi2, .math_approx_mode = false, .packer_l1_acc = true}};
+        const auto original = create_simple_matmul_program_config(
+            a,
+            b,
+            false,
+            false,
+            0,
+            attributes.compute_kernel_config,
+            device_->compute_with_storage_grid_size(),
+            attributes.output_mem_config,
+            DataType::BFLOAT16);
+        const auto selected = get_program_config(a, b, false, false, 0, attributes);
+        EXPECT_EQ(fmt::format("{}", selected), fmt::format("{}", original));
+    }
 }
 
 }  // namespace ttnn::operations::matmul::test

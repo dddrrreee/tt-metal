@@ -12,6 +12,9 @@
 # suite collects pytest with python_tests/ as rootdir.
 
 wormhole_b0:
+  # ttsim v1.15.1 cannot execute this FP32 unpack configuration.
+  - tests/ttnn/unit_tests/operations/matmul/test_matmul_batch_parallel.py::test_matmul_small_batches_other_formats[dtype=DataType.FLOAT32
+
   # Job-level timeouts -- can be cut down still
   - tests/ttnn/unit_tests/base_functionality/test_graph_report.py::test_resnet50_e2e_graph_capture
   - tests/ttnn/unit_tests/operations/conv/test_conv2d.py
