@@ -1,0 +1,17 @@
+--- a/ttnn/cpp/ttnn/operations/matmul/device/config/matmul_program_config.cpp
++++ b/ttnn/cpp/ttnn/operations/matmul/device/config/matmul_program_config.cpp
+@@ -8,2 +8,4 @@
+ #include <algorithm>
++#include <cstdio>
++#include <cstdlib>
+ #include <ranges>
+@@ -1093,2 +1095,9 @@
+     log_debug(tt::LogOp, "Auto generated program config: {}", config);
++    if (const char* path = std::getenv("TK_VALID_SELECTOR_LOG")) {
++        if (FILE* stream = std::fopen(path, "a")) {
++            const auto text = fmt::format("{}\n", config);
++            std::fwrite(text.data(), 1, text.size(), stream);
++            std::fclose(stream);
++        }
++    }
+ 

@@ -1,0 +1,1895 @@
+[
+  {
+    "group": "issue",
+    "shape": [
+      4,
+      64,
+      64,
+      64
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      4
+    ],
+    "batch_b": [
+      4
+    ],
+    "issue_row": 1,
+    "moreh": true,
+    "id": "issue-0edb97f4d6c0",
+    "seed": 1037010,
+    "ordinal": 0,
+    "shard": 0
+  },
+  {
+    "group": "issue",
+    "shape": [
+      16,
+      128,
+      64,
+      128
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      16
+    ],
+    "batch_b": [
+      16
+    ],
+    "issue_row": 2,
+    "moreh": true,
+    "id": "issue-99f9cd7d2be7",
+    "seed": 10154248,
+    "ordinal": 1,
+    "shard": 0
+  },
+  {
+    "group": "issue",
+    "shape": [
+      32,
+      256,
+      64,
+      128
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      32
+    ],
+    "batch_b": [
+      32
+    ],
+    "issue_row": 3,
+    "moreh": true,
+    "id": "issue-d0a912df6e7e",
+    "seed": 13738061,
+    "ordinal": 2,
+    "shard": 0
+  },
+  {
+    "group": "issue",
+    "shape": [
+      32,
+      32,
+      64,
+      32
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      32
+    ],
+    "batch_b": [
+      32
+    ],
+    "issue_row": 4,
+    "moreh": true,
+    "id": "issue-304478db055a",
+    "seed": 3226547,
+    "ordinal": 3,
+    "shard": 0
+  },
+  {
+    "group": "issue",
+    "shape": [
+      64,
+      64,
+      64,
+      64
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      64
+    ],
+    "batch_b": [
+      64
+    ],
+    "issue_row": 5,
+    "moreh": true,
+    "id": "issue-ad192169e0c2",
+    "seed": 11407452,
+    "ordinal": 4,
+    "shard": 0
+  },
+  {
+    "group": "issue",
+    "shape": [
+      128,
+      128,
+      64,
+      128
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      128
+    ],
+    "batch_b": [
+      128
+    ],
+    "issue_row": 6,
+    "moreh": true,
+    "id": "issue-fa2f371c7b36",
+    "seed": 16459378,
+    "ordinal": 5,
+    "shard": 1
+  },
+  {
+    "group": "issue",
+    "shape": [
+      128,
+      256,
+      64,
+      128
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      128
+    ],
+    "batch_b": [
+      128
+    ],
+    "issue_row": 7,
+    "moreh": true,
+    "id": "issue-6e3952b56c31",
+    "seed": 7286925,
+    "ordinal": 6,
+    "shard": 1
+  },
+  {
+    "group": "issue",
+    "shape": [
+      8,
+      32,
+      512,
+      32
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "issue_row": 8,
+    "moreh": true,
+    "id": "issue-8723f2deed44",
+    "seed": 8919853,
+    "ordinal": 7,
+    "shard": 1
+  },
+  {
+    "group": "issue",
+    "shape": [
+      8,
+      64,
+      512,
+      128
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "issue_row": 9,
+    "moreh": true,
+    "id": "issue-b1a9d563c41a",
+    "seed": 11706640,
+    "ordinal": 8,
+    "shard": 1
+  },
+  {
+    "group": "issue",
+    "shape": [
+      16,
+      64,
+      512,
+      64
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      16
+    ],
+    "batch_b": [
+      16
+    ],
+    "issue_row": 10,
+    "moreh": true,
+    "id": "issue-c03cc9d47f62",
+    "seed": 12661764,
+    "ordinal": 9,
+    "shard": 1
+  },
+  {
+    "group": "issue",
+    "shape": [
+      32,
+      256,
+      512,
+      64
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      32
+    ],
+    "batch_b": [
+      32
+    ],
+    "issue_row": 11,
+    "moreh": true,
+    "id": "issue-2ad26e3fd3aa",
+    "seed": 2869673,
+    "ordinal": 10,
+    "shard": 2
+  },
+  {
+    "group": "issue",
+    "shape": [
+      64,
+      64,
+      512,
+      64
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      64
+    ],
+    "batch_b": [
+      64
+    ],
+    "issue_row": 12,
+    "moreh": true,
+    "id": "issue-f3403cb7c6e7",
+    "seed": 16004983,
+    "ordinal": 11,
+    "shard": 2
+  },
+  {
+    "group": "issue",
+    "shape": [
+      128,
+      64,
+      512,
+      32
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      128
+    ],
+    "batch_b": [
+      128
+    ],
+    "issue_row": 13,
+    "moreh": true,
+    "id": "issue-b6bf0f80b1e8",
+    "seed": 12039754,
+    "ordinal": 12,
+    "shard": 2
+  },
+  {
+    "group": "issue",
+    "shape": [
+      128,
+      256,
+      512,
+      64
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      128
+    ],
+    "batch_b": [
+      128
+    ],
+    "issue_row": 14,
+    "moreh": true,
+    "id": "issue-d231d656bf39",
+    "seed": 13838609,
+    "ordinal": 13,
+    "shard": 2
+  },
+  {
+    "group": "issue",
+    "shape": [
+      4,
+      32,
+      4096,
+      32
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      4
+    ],
+    "batch_b": [
+      4
+    ],
+    "issue_row": 15,
+    "moreh": true,
+    "id": "issue-43028ef1938d",
+    "seed": 4454857,
+    "ordinal": 14,
+    "shard": 2
+  },
+  {
+    "group": "issue",
+    "shape": [
+      8,
+      64,
+      4096,
+      128
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "issue_row": 16,
+    "moreh": true,
+    "id": "issue-0b7df9448939",
+    "seed": 816436,
+    "ordinal": 15,
+    "shard": 3
+  },
+  {
+    "group": "issue",
+    "shape": [
+      16,
+      32,
+      4096,
+      32
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      16
+    ],
+    "batch_b": [
+      16
+    ],
+    "issue_row": 17,
+    "moreh": true,
+    "id": "issue-a0b71c966304",
+    "seed": 10595927,
+    "ordinal": 16,
+    "shard": 3
+  },
+  {
+    "group": "issue",
+    "shape": [
+      32,
+      64,
+      4096,
+      64
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      32
+    ],
+    "batch_b": [
+      32
+    ],
+    "issue_row": 18,
+    "moreh": true,
+    "id": "issue-e1be60b83f69",
+    "seed": 14857627,
+    "ordinal": 17,
+    "shard": 3
+  },
+  {
+    "group": "issue",
+    "shape": [
+      64,
+      128,
+      4096,
+      32
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      64
+    ],
+    "batch_b": [
+      64
+    ],
+    "issue_row": 19,
+    "moreh": true,
+    "id": "issue-cadd6cdb99fb",
+    "seed": 13358247,
+    "ordinal": 18,
+    "shard": 3
+  },
+  {
+    "group": "issue",
+    "shape": [
+      128,
+      256,
+      4096,
+      32
+    ],
+    "distribution": "uniform",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      128
+    ],
+    "batch_b": [
+      128
+    ],
+    "issue_row": 20,
+    "moreh": true,
+    "id": "issue-0aeeeb2110c8",
+    "seed": 779814,
+    "ordinal": 19,
+    "shard": 3
+  },
+  {
+    "group": "guard",
+    "shape": [
+      64,
+      32,
+      128,
+      2048
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      64
+    ],
+    "batch_b": [
+      64
+    ],
+    "id": "guard-051b61cad0e7",
+    "seed": 397980,
+    "ordinal": 20,
+    "shard": 4,
+    "moreh": false
+  },
+  {
+    "group": "guard",
+    "shape": [
+      65,
+      32,
+      128,
+      2048
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      65
+    ],
+    "batch_b": [
+      65
+    ],
+    "id": "guard-ac4b36a5982c",
+    "seed": 11354737,
+    "ordinal": 21,
+    "shard": 4,
+    "moreh": false
+  },
+  {
+    "group": "guard",
+    "shape": [
+      109,
+      32,
+      128,
+      3488
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      109
+    ],
+    "batch_b": [
+      109
+    ],
+    "id": "guard-21b03e9de0b7",
+    "seed": 2271097,
+    "ordinal": 22,
+    "shard": 4,
+    "moreh": false
+  },
+  {
+    "group": "guard",
+    "shape": [
+      110,
+      32,
+      128,
+      3488
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      110
+    ],
+    "batch_b": [
+      110
+    ],
+    "id": "guard-b3a6f1f1b357",
+    "seed": 11836972,
+    "ordinal": 23,
+    "shard": 4,
+    "moreh": false
+  },
+  {
+    "group": "grid-waves",
+    "shape": [
+      109,
+      32,
+      64,
+      3488
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      109
+    ],
+    "batch_b": [
+      109
+    ],
+    "id": "grid-waves-891e805fa4b0",
+    "seed": 9049531,
+    "ordinal": 24,
+    "shard": 4,
+    "moreh": false
+  },
+  {
+    "group": "grid-waves",
+    "shape": [
+      110,
+      32,
+      64,
+      3488
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      110
+    ],
+    "batch_b": [
+      110
+    ],
+    "id": "grid-waves-df29f684c172",
+    "seed": 14688561,
+    "ordinal": 25,
+    "shard": 5,
+    "moreh": false
+  },
+  {
+    "group": "grid-waves",
+    "shape": [
+      111,
+      32,
+      64,
+      3488
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      111
+    ],
+    "batch_b": [
+      111
+    ],
+    "id": "grid-waves-417efe40c387",
+    "seed": 4355641,
+    "ordinal": 26,
+    "shard": 5,
+    "moreh": false
+  },
+  {
+    "group": "grid-waves",
+    "shape": [
+      219,
+      32,
+      64,
+      3488
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      219
+    ],
+    "batch_b": [
+      219
+    ],
+    "id": "grid-waves-213b72a19fe5",
+    "seed": 2241197,
+    "ordinal": 27,
+    "shard": 5,
+    "moreh": false
+  },
+  {
+    "group": "grid-waves",
+    "shape": [
+      220,
+      32,
+      64,
+      3488
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      220
+    ],
+    "batch_b": [
+      220
+    ],
+    "id": "grid-waves-65ce5599042a",
+    "seed": 6735248,
+    "ordinal": 28,
+    "shard": 5,
+    "moreh": false
+  },
+  {
+    "group": "grid-waves",
+    "shape": [
+      221,
+      32,
+      64,
+      3488
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      221
+    ],
+    "batch_b": [
+      221
+    ],
+    "id": "grid-waves-b9bfcd7bf4bc",
+    "seed": 12236552,
+    "ordinal": 29,
+    "shard": 5,
+    "moreh": false
+  },
+  {
+    "group": "explicit",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "core_grid": [
+      2,
+      2
+    ],
+    "id": "explicit-af363adac030",
+    "seed": 11545973,
+    "ordinal": 30,
+    "shard": 6,
+    "moreh": false
+  },
+  {
+    "group": "explicit",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "explicit_reuse": true,
+    "id": "explicit-5ca97c2f5278",
+    "seed": 6135991,
+    "ordinal": 31,
+    "shard": 6,
+    "moreh": false
+  },
+  {
+    "group": "sharded",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "HEIGHT",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "sharded-34ab5a5b6834",
+    "seed": 3515029,
+    "ordinal": 32,
+    "shard": 6,
+    "moreh": false
+  },
+  {
+    "group": "sharded",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "HEIGHT",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "sharded-cf978c396d7e",
+    "seed": 13668039,
+    "ordinal": 33,
+    "shard": 6,
+    "moreh": false
+  },
+  {
+    "group": "sharded",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "HEIGHT",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "sharded-a392d8388991",
+    "seed": 10783251,
+    "ordinal": 34,
+    "shard": 6,
+    "moreh": false
+  },
+  {
+    "group": "sharded",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "WIDTH",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "sharded-a0fedc15bc52",
+    "seed": 10614295,
+    "ordinal": 35,
+    "shard": 7,
+    "moreh": false
+  },
+  {
+    "group": "sharded",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "WIDTH",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "sharded-4aa8428dc670",
+    "seed": 4956029,
+    "ordinal": 36,
+    "shard": 7,
+    "moreh": false
+  },
+  {
+    "group": "sharded",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "WIDTH",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "sharded-1638b042797e",
+    "seed": 1519595,
+    "ordinal": 37,
+    "shard": 7,
+    "moreh": false
+  },
+  {
+    "group": "sharded",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "BLOCK",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "sharded-79b0e9d00909",
+    "seed": 8038436,
+    "ordinal": 38,
+    "shard": 7,
+    "moreh": false
+  },
+  {
+    "group": "sharded",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "BLOCK",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "sharded-3f55a71ac5fa",
+    "seed": 4213986,
+    "ordinal": 39,
+    "shard": 7,
+    "moreh": false
+  },
+  {
+    "group": "sharded",
+    "shape": [
+      8,
+      64,
+      128,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "BLOCK",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "sharded-f72d644d3ee7",
+    "seed": 16262303,
+    "ordinal": 40,
+    "shard": 8,
+    "moreh": false
+  },
+  {
+    "group": "compute",
+    "shape": [
+      8,
+      32,
+      512,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "compute": {
+      "fp32_dest_acc_en": false,
+      "packer_l1_acc": true,
+      "math_fidelity": "LoFi",
+      "math_approx_mode": false
+    },
+    "id": "compute-b3b12a9d62f9",
+    "seed": 11839589,
+    "ordinal": 41,
+    "shard": 8,
+    "moreh": false
+  },
+  {
+    "group": "compute",
+    "shape": [
+      8,
+      32,
+      512,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "compute": {
+      "fp32_dest_acc_en": false,
+      "packer_l1_acc": true,
+      "math_fidelity": "HiFi2",
+      "math_approx_mode": false
+    },
+    "id": "compute-e3171f72738a",
+    "seed": 14945882,
+    "ordinal": 42,
+    "shard": 8,
+    "moreh": false
+  },
+  {
+    "group": "compute",
+    "shape": [
+      8,
+      32,
+      512,
+      64
+    ],
+    "distribution": "normal",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "compute": {
+      "fp32_dest_acc_en": true,
+      "packer_l1_acc": true,
+      "math_fidelity": "HiFi4",
+      "math_approx_mode": false
+    },
+    "id": "compute-33dbe223dba6",
+    "seed": 3461917,
+    "ordinal": 43,
+    "shard": 8,
+    "moreh": false
+  },
+  {
+    "group": "accuracy",
+    "shape": [
+      2,
+      32,
+      512,
+      32
+    ],
+    "distribution": "exponents",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      2
+    ],
+    "batch_b": [
+      2
+    ],
+    "id": "accuracy-b8fc5037de1a",
+    "seed": 12186507,
+    "ordinal": 44,
+    "shard": 8,
+    "moreh": false
+  },
+  {
+    "group": "accuracy",
+    "shape": [
+      2,
+      32,
+      512,
+      32
+    ],
+    "distribution": "large_finite",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      2
+    ],
+    "batch_b": [
+      2
+    ],
+    "id": "accuracy-0f4a3bc255b3",
+    "seed": 1065334,
+    "ordinal": 45,
+    "shard": 9,
+    "moreh": false
+  },
+  {
+    "group": "accuracy",
+    "shape": [
+      8,
+      32,
+      4096,
+      128
+    ],
+    "distribution": "exponents",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "accuracy-9648850b6a74",
+    "seed": 9912256,
+    "ordinal": 46,
+    "shard": 9,
+    "moreh": false
+  },
+  {
+    "group": "accuracy",
+    "shape": [
+      8,
+      32,
+      4096,
+      128
+    ],
+    "distribution": "large_finite",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      8
+    ],
+    "batch_b": [
+      8
+    ],
+    "id": "accuracy-2b3077159c82",
+    "seed": 2893746,
+    "ordinal": 47,
+    "shard": 9,
+    "moreh": false
+  },
+  {
+    "group": "accuracy",
+    "shape": [
+      32,
+      64,
+      512,
+      32
+    ],
+    "distribution": "exponents",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      32
+    ],
+    "batch_b": [
+      32
+    ],
+    "id": "accuracy-358add06447a",
+    "seed": 3572248,
+    "ordinal": 48,
+    "shard": 9,
+    "moreh": false
+  },
+  {
+    "group": "accuracy",
+    "shape": [
+      32,
+      64,
+      512,
+      32
+    ],
+    "distribution": "large_finite",
+    "dtype_a": "bfloat16",
+    "dtype_b": "bfloat16",
+    "dtype_out": "bfloat16",
+    "memory_a": "DRAM",
+    "memory_b": "DRAM",
+    "memory_out": "DRAM",
+    "layout": "TILE",
+    "tile_a": [
+      32,
+      32
+    ],
+    "tile_b": [
+      32,
+      32
+    ],
+    "op": "matmul",
+    "batch_a": [
+      32
+    ],
+    "batch_b": [
+      32
+    ],
+    "id": "accuracy-c0321daf0a21",
+    "seed": 12659032,
+    "ordinal": 49,
+    "shard": 9,
+    "moreh": false
+  }
+]

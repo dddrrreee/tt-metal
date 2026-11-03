@@ -1,0 +1,121 @@
+diff --git a/tt_metal/impl/device/device_manager.cpp b/tt_metal/impl/device/device_manager.cpp
+index 6b11bf71da5..772e8d933c4 100644
+--- a/tt_metal/impl/device/device_manager.cpp
++++ b/tt_metal/impl/device/device_manager.cpp
+@@ -5,6 +5,8 @@
+ #include "device_manager.hpp"
+ 
+ #include <numa.h>
++#include <cstdlib>
++#include <fstream>
+ #include <pthread.h>
+ #include <tracy/Tracy.hpp>
+ #include <unistd.h>  // Warning Linux Only, needed for _SC_NPROCESSORS_ONLN
+@@ -20,6 +22,7 @@
+ #include "impl/context/context_descriptor.hpp"
+ #include "firmware/command_queue_initializer.hpp"
+ #include "firmware/profiler_initializer.hpp"
++#include "impl/profiler/tt_metal_profiler.hpp"
+ #include "firmware/fabric_firmware_initializer.hpp"
+ #include "firmware/dispatch_kernel_initializer.hpp"
+ #include "impl/streaming_profiler/sync/link_sync.hpp"
+@@ -468,6 +471,22 @@ void DeviceManager::initialize_fabric_and_dispatch_fw() {
+     // These run before the fabric and dispatch firmware start. Measuring the tile clock offsets needs the Tensix, eth
+     // and DRAM cores to itself, and a fabric router that runs the device-to-device sync must not read what an earlier
+     // process left in its L1.
++    if (const char* path = std::getenv("TK_VALID_CLOCK_OFFSETS")) {
++        streaming_profiler::measure_tile_clock_offsets(active_devices, ctx_.get_context_id());
++        std::ofstream log(path, std::ios::app);
++        for (auto* device : active_devices) {
++            detail::InitDeviceProfiler(ctx_, device);
++            const auto* offsets = streaming_profiler::tile_clock_offsets(ctx_.get_context_id(), device->id());
++            TT_FATAL(offsets != nullptr, "Missing validation clock calibration");
++            for (const auto& [key, offset] : *offsets) {
++                if (key.first == CoreType::WORKER) {
++                    const auto physical = device->worker_core_from_logical_core(key.second);
++                    log << device->id() << ',' << key.second.x << ',' << key.second.y << ','
++                        << physical.x << ',' << physical.y << ',' << offset << '\n';
++                }
++            }
++        }
++    }
+     if (env_impl_.get_rtoptions().get_streaming_profiler_enabled()) {
+         streaming_profiler::measure_tile_clock_offsets(active_devices, ctx_.get_context_id());
+         streaming_profiler::link_sync::clear_port_state(active_devices, ctx_.get_context_id());
+diff --git a/tt_metal/impl/profiler/profiler.cpp b/tt_metal/impl/profiler/profiler.cpp
+index 353a8ed53e6..47623919f79 100644
+--- a/tt_metal/impl/profiler/profiler.cpp
++++ b/tt_metal/impl/profiler/profiler.cpp
+@@ -4,6 +4,8 @@
+ 
+ #include <tt_stl/fmt.hpp>
+ #include <optional>
++#include <fstream>
++#include "impl/streaming_profiler/sync/tile_sync.hpp"
+ #include "context/metal_env_accessor.hpp"
+ #include "core_coord.hpp"
+ #include <common/TracyTTDeviceData.hpp>
+@@ -1990,6 +1992,29 @@ void DeviceProfiler::readDeviceMarkerData(
+     const kernel_profiler::PacketTypes packet_type = get_packet_type(timer_id);
+     const auto [trace_id, trace_id_count] = getTraceIdAndCount(run_host_id, device_trace_counter);
+ 
++    if (const char* path = std::getenv("TK_VALID_CLOCK_MARKERS")) {
++        const auto* offsets = streaming_profiler::tile_clock_offsets(ctx_.get_context_id(), device_id);
++        if (offsets != nullptr && (risc_type == tracy::RiscType::BRISC || risc_type == tracy::RiscType::NCRISC ||
++                                  risc_type == tracy::RiscType::TRISC_0 || risc_type == tracy::RiscType::TRISC_1 ||
++                                  risc_type == tracy::RiscType::TRISC_2)) {
++            const auto logical = env_.get_cluster().get_soc_desc(device_id).translate_coord_to(
++                physical_core, CoordSystem::NOC0, CoordSystem::LOGICAL);
++            const auto it = offsets->find({CoreType::WORKER, CoreCoord{logical.x, logical.y}});
++            TT_FATAL(it != offsets->end(), "Missing worker clock offset");
++            const auto corrected = static_cast<int64_t>(timestamp) - it->second;
++            TT_FATAL(corrected >= 0, "Negative corrected timestamp");
++            if (marker_details.marker_name.ends_with("-KERNEL")) {
++                static std::mutex log_mutex;
++                static std::ofstream log(path, std::ios::app);
++                std::lock_guard lock(log_mutex);
++                log << run_host_id << ',' << device_id << ',' << physical_core.x << ',' << physical_core.y << ','
++                    << static_cast<int>(risc_type) << ',' << marker_details.marker_name << ','
++                    << static_cast<int>(get_marker_type_from_packet_type(packet_type)) << ','
++                    << timestamp << ',' << it->second << ',' << corrected << '\n';
++            }
++            timestamp = static_cast<uint64_t>(corrected);
++        }
++    }
+     const auto& [_, new_marker_inserted] = device_markers.emplace(
+         run_host_id,
+         trace_id,
+diff --git a/tt_metal/impl/streaming_profiler/sync/tile_sync.cpp b/tt_metal/impl/streaming_profiler/sync/tile_sync.cpp
+index 112f52eff8b..8625c72beea 100644
+--- a/tt_metal/impl/streaming_profiler/sync/tile_sync.cpp
++++ b/tt_metal/impl/streaming_profiler/sync/tile_sync.cpp
+@@ -6,6 +6,7 @@
+ 
+ #include <algorithm>
+ #include <chrono>
++#include <cstdlib>
+ #include <future>
+ #include <map>
+ #include <mutex>
+@@ -236,8 +237,10 @@ Network launch_network(IDevice* device, ContextId context_id) {
+         zero_l1(cluster, net.chip, tile.virt, table_of(tile), offsetof(kernel_profiler::TileSyncTable, partner));
+         // The firmware reads its profiler ring position from the control vector only at the first launch after it
+         // loads, which is this one, so a tail left by an earlier process would start the ring thousands of words ahead.
+-        zero_profiler_control(
+-            cluster, net.chip, tile.virt, hal.get_dev_noc_addr(tile.hal_type, HalL1MemAddrType::PROFILER));
++        if (std::getenv("TK_VALID_CLOCK_OFFSETS") == nullptr) {
++            zero_profiler_control(
++                cluster, net.chip, tile.virt, hal.get_dev_noc_addr(tile.hal_type, HalL1MemAddrType::PROFILER));
++        }
+     }
+     for (auto& [hal_type, kind] : net.kinds) {
+         launch_resident(device, kind.program);
+@@ -439,7 +442,7 @@ const TileClockOffsets* tile_clock_offsets(ContextId context_id, uint32_t chip)
+ // the chip is up.
+ void measure_tile_clock_offsets(std::span<Device* const> devices, ContextId context_id) {
+     auto& mc = MetalContext::instance(context_id);
+-    if (!can_capture(mc)) {
++    if (!can_capture(mc) && std::getenv("TK_VALID_CLOCK_OFFSETS") == nullptr) {
+         return;
+     }
+     auto& cluster = mc.get_cluster();
