@@ -8,8 +8,8 @@
 // caller's op glue decides from how many chunks a row runs here.
 //
 // A row of K = 512, 1024 or 2048 chunks: copies and face transposes on MATH, SFPU work on PACK. Chunk c runs
-// stage j at step 9c + 2j, so MATH transposes one chunk while PACK sorts the other; a K 1024 or K 2048 row of
-// two or more chunks opens with chunks 0 and 1 side by side (see paired_head), so no chunk starts alone.
+// stage j at step 9c + 2j. MATH overlaps PACK except for the shared-half K 512 two-chunk gathering build.
+// K 1024 and K 2048 rows of two or more chunks open with two chunks side by side (see paired_head).
 
 // The thread guards accept both spellings: the metal JIT defines TRISC_MATH / TRISC_PACK, the tt-llk test
 // harness defines LLK_TRISC_MATH / LLK_TRISC_PACK.
@@ -25,14 +25,14 @@
 namespace topk_xl_split
 {
 
-constexpr std::uint8_t F2S                   = ckernel::semaphore::FPU_SFPU;
-constexpr std::uint8_t S2F                   = ckernel::semaphore::UNPACK_MATH_DONE;
+constexpr std::uint8_t F2S = ckernel::semaphore::FPU_SFPU;
+constexpr std::uint8_t S2F = ckernel::semaphore::UNPACK_MATH_DONE;
 // The schedule runs ahead of PACK, so the shared semaphores need more than their default depth of 1.
 constexpr std::uint8_t TOKEN_DEPTH             = 15;
 constexpr std::uint8_t DEFAULT_SEMAPHORE_DEPTH = 1;
-constexpr std::uint32_t STEPS_PER_CHUNK      = 9;
-constexpr std::uint32_t STAGES_FIRST_CHUNK   = 7;
-constexpr std::uint32_t STAGES_MERGING_CHUNK = 9;
+constexpr std::uint32_t STEPS_PER_CHUNK        = 9;
+constexpr std::uint32_t STAGES_FIRST_CHUNK     = 7;
+constexpr std::uint32_t STAGES_MERGING_CHUNK   = 9;
 
 inline bool decode_step(const std::uint32_t c1, const std::uint32_t r, const std::uint32_t num_chunks, std::uint32_t& chunk, std::uint32_t& stage)
 {
@@ -65,13 +65,19 @@ constexpr std::uint32_t slot_tile(const std::uint32_t from_last)
 }
 
 template <std::uint32_t K>
+constexpr bool shares_dest_half(const std::uint32_t num_chunks)
+{
+    return K == 512 && num_chunks == 2;
+}
+
+template <std::uint32_t K>
 constexpr std::uint32_t chunk_tile(const std::uint32_t chunk, const std::uint32_t num_chunks)
 {
     // K 512 rows of two chunks keep the one-thread layout (survivor in tile 0, chunk 1 in tile 1): the index split
     // writes half of tile 1 and the rest of it then holds what the one-thread kernel leaves there.
     if constexpr (K == 512)
     {
-        if (num_chunks == 2)
+        if (shares_dest_half<K>(num_chunks))
         {
             return chunk;
         }
@@ -83,7 +89,7 @@ constexpr std::uint32_t chunk_tile(const std::uint32_t chunk, const std::uint32_
 template <std::uint32_t K>
 constexpr std::uint32_t survivor_tile(const std::uint32_t chunk, const std::uint32_t num_chunks)
 {
-    return (K == 512 && num_chunks == 2) ? 0 : chunk_tile<K>(chunk, num_chunks);
+    return shares_dest_half<K>(num_chunks) ? 0 : chunk_tile<K>(chunk, num_chunks);
 }
 
 // Rows from a fused chunk's tiles to the survivor of the chunk before it, modulo the 1024-row Dst address; slot_parity
@@ -99,7 +105,7 @@ constexpr int survivor_distance(const std::uint32_t slot_parity)
 template <std::uint32_t K>
 constexpr bool can_prefetch(const std::uint32_t num_chunks)
 {
-    return (num_chunks & 1) == 0 && !(K == 512 && num_chunks == 2);
+    return (num_chunks & 1) == 0 && !shares_dest_half<K>(num_chunks);
 }
 
 // K 1024 and 2048 rows of two or more chunks run chunks 0 and 1 side by side up to stage 6 (HEAD_STEPS); slot 2 on
@@ -180,6 +186,12 @@ inline void math_row(const std::uint32_t num_chunks, CopyChunk&& copy_chunk, con
     bool prev_step_busy = false, cfg_open = false, half_release_due = false;
 
     const bool paired = paired_head<K>(num_chunks);
+    // Gathering requires serial steps for the two-chunk K=512 layout.
+#if defined(ENABLE_GATHERING)
+    const bool serialize = shares_dest_half<K>(num_chunks);
+#else
+    constexpr bool serialize = false;
+#endif
     // Slot 2 of a paired row starts at step HEAD_STEPS: chunk 1's stages 5 and 6 are done, so its stages 7 and 8 come
     // two steps early.
     const std::uint32_t slot_step0 = paired ? HEAD_STEPS - 2 * STEPS_PER_CHUNK : 0;
@@ -217,11 +229,9 @@ inline void math_row(const std::uint32_t num_chunks, CopyChunk&& copy_chunk, con
                 }
             }
             const std::uint32_t step = head ? r : c1 * STEPS_PER_CHUNK + r + slot_step0;
-            // Every SFPU part two or more steps back must be done before this copy touches its tiles.
-            // Equivalent to posted - (prev_step_busy ? 1 : 0); it cannot wrap, because prev_step_busy is only
-            // set right after posted++
-            // below. The two cannot co-occur today, but a wrap here is a hang, not a wrong answer.
-            const std::uint32_t need = ((paired && step == 1) || !prev_step_busy) ? posted : posted - 1;
+            // A serial step drains all posted work; otherwise one busy PACK step may overlap.
+            // prev_step_busy implies posted > 0, so subtracting one cannot wrap.
+            const std::uint32_t need = (serialize || (paired && step == 1) || !prev_step_busy) ? posted : posted - 1;
             for (; taken < need; taken++)
             {
                 take_pack_token();
@@ -416,7 +426,7 @@ inline __attribute__((always_inline)) void sfpu_stage_body(
                 }
                 if constexpr (K == 512)
                 {
-                    if (num_chunks == 2)
+                    if (shares_dest_half<K>(num_chunks))
                     {
                         sfpu::_topk_xl_split_merge_<K, 64 /*distance*/, true /*macros*/>(0);
                         break;

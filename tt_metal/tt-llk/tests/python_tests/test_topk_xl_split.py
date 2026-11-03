@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """The split-thread topk_xl chunk against the single-thread fused kernel: packed results match bit for bit."""
 
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
 import pytest
 import torch
 from conftest import skip_for_quasar, skip_for_wormhole
@@ -13,8 +17,8 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.stimuli_config import StimuliConfig
-from helpers.test_config import TestConfig
-from helpers.test_variant_parameters import DEST_SYNC, TOPK_XL
+from helpers.test_config import BuildMode, TestConfig
+from helpers.test_variant_parameters import DEST_SYNC, TOPK_XL, RuntimeParameter
 from test_topk_xl import (
     ELEMENTS_PER_TILE,
     FORMATS,
@@ -93,7 +97,19 @@ CASE_IDS = [
 ]
 
 
-def _config(test_name, case, ascending=None):
+# The runtime direction keeps PACK's instruction layout identical for both orders.
+@dataclass
+class RuntimeTopKDirection(RuntimeParameter):
+    topk_xl_ascending: int = 0
+
+    def convert_to_cpp(self):
+        return "#define TOPK_XL_RUNTIME_DIRECTION"
+
+    def convert_to_struct_fields(self):
+        return "std::uint32_t topk_xl_ascending;", "I"
+
+
+def _config(test_name, case, ascending=None, runtime_direction=False):
     K, num_chunks, tail, num_rows, mode, fp32, seg_base, case_ascending = case
     ascending = case_ascending if ascending is None else ascending
     formats = FP32_FORMATS if fp32 else FORMATS
@@ -114,11 +130,12 @@ def _config(test_name, case, ascending=None):
                 seg_base=seg_base,
                 sort_direction=(
                     TopKSortDirection.Ascending
-                    if ascending
+                    if ascending and not runtime_direction
                     else TopKSortDirection.Descending
                 ),
             ),
-        ],
+        ]
+        + ([RuntimeTopKDirection()] if runtime_direction else []),
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -129,6 +146,7 @@ def _config(test_name, case, ascending=None):
             tile_count_B=1,
             tile_count_res=num_rows * 2 * tiles_per_seq,
         ),
+        runtimes=[RuntimeTopKDirection(int(ascending))] if runtime_direction else [],
         dest_acc=DestAccumulation.Yes,
         unpack_to_dest=fp32,
     )
@@ -136,16 +154,21 @@ def _config(test_name, case, ascending=None):
 
 
 @pytest.mark.parametrize("case", CASES, ids=CASE_IDS)
-def test_topk_xl_split(case):
+def test_topk_xl_split(case, runtime_direction=False):
     K, _, _, _, mode, _, seg_base, ascending = case
     single, rows, formats = _config("sources/topk_xl_test.cpp", case)
-    split, _, _ = _config("sources/topk_xl_split_test.cpp", case)
+    split, _, _ = _config(
+        "sources/topk_xl_split_test.cpp", case, runtime_direction=runtime_direction
+    )
     # A compile-only run stops at the first run(), so build both first.
     single.prepare()
     split.prepare()
     if ascending:
         descending, _, _ = _config(
-            "sources/topk_xl_split_test.cpp", case, ascending=False
+            "sources/topk_xl_split_test.cpp",
+            case,
+            ascending=False,
+            runtime_direction=runtime_direction,
         )
         descending.prepare()
 
@@ -189,3 +212,94 @@ def test_topk_xl_split(case):
                 f"row {r}: ascending final rebuild is not the mirror of the descending one "
                 f"in {mismatch}/{K} lanes"
             )
+
+
+# DEST_ACCESS_CFG is word 220; the second configuration bank starts 224 words later.
+DEST_ACCESS_CFG = 220
+CONFIG_BANK_WORDS = 224
+DEST_REMAP_AND_SWIZZLE = (1 << 1) | (1 << 0)
+
+
+@pytest.fixture
+def gathering_build(monkeypatch):
+    from helpers import device as device_helpers
+
+    with monkeypatch.context() as patch:
+        patch.setenv("TT_METAL_ENABLE_GATHERING", "1")
+        try:
+            TestConfig.setup_paths(TestConfig.LLK_ROOT)
+            for flag in ("_BUILD_DIRS_CREATED", "SHARED_ARTEFACTS_AVAILABLE"):
+                patch.setattr(TestConfig, flag, False)
+            TestConfig.create_build_directories()
+            TestConfig.BRISC_ELF_LOADED = False
+            TestConfig.LAST_LOADED_ELFS = Path()
+            device_helpers.common_counter = 0
+            yield
+        finally:
+            # Reload the surrounding session's firmware after changing its gathering mode.
+            patch.undo()
+            TestConfig.setup_paths(TestConfig.LLK_ROOT)
+            TestConfig.BRISC_ELF_LOADED = False
+            TestConfig.LAST_LOADED_ELFS = Path()
+            device_helpers.common_counter = 0
+
+
+@pytest.fixture
+def dest_access_cfg(request, gathering_build):
+    if TestConfig.BUILD_MODE == BuildMode.PRODUCE:
+        yield
+        return
+    simulator = os.environ.get("TT_METAL_SIMULATOR") or os.environ.get(
+        "TT_UMD_SIMULATOR_PATH", ""
+    )
+    if TestConfig.TEST_TARGET.run_simulator and simulator.endswith(".so"):
+        pytest.skip("ttsim does not implement second-bank configuration register reads")
+    from helpers.device import get_register_store
+    from ttexalens.register_store import ConfigurationRegisterDescription
+
+    store = get_register_store(TestConfig.TENSIX_LOCATION)
+    registers = [
+        ConfigurationRegisterDescription(
+            index=DEST_ACCESS_CFG + bank * CONFIG_BANK_WORDS
+        )
+        for bank in (0, 1)
+    ]
+    saved = [store.read_register(reg) for reg in registers]
+    try:
+        for reg, value in zip(registers, saved):
+            store.write_register(reg, (value & ~DEST_REMAP_AND_SWIZZLE) | request.param)
+        yield
+    finally:
+        for reg, value in zip(registers, saved):
+            store.write_register(reg, value)
+
+
+@pytest.mark.parametrize(
+    "dest_access_cfg,case",
+    [
+        pytest.param(
+            DEST_REMAP_AND_SWIZZLE,
+            (512, 2, 512, 1, "positive", False, 0, True),
+            id="remapped-ascending",
+        ),
+        pytest.param(
+            DEST_REMAP_AND_SWIZZLE,
+            (512, 2, 512, 1, "positive", False, 0, False),
+            id="remapped-descending",
+        ),
+    ]
+    + [
+        pytest.param(cfg, case, id=f"{layout}-{name}")
+        for cfg, layout in ((0, "linear"), (DEST_REMAP_AND_SWIZZLE, "remapped"))
+        for name, case in [
+            ("signed", (512, 2, 512, 1, "signed", False, 0, True)),
+            ("partial", (512, 2, 300, 2, "positive", False, 0, True)),
+            ("random", (512, 2, 300, 2, "random", False, 0, False)),
+            ("fp32", (512, 2, 512, 1, "positive", True, 0, True)),
+            ("segment", (512, 2, 512, 2, "positive", False, 16384, True)),
+        ]
+    ],
+    indirect=["dest_access_cfg"],
+)
+def test_topk_xl_split_dest_remap(case, dest_access_cfg):
+    test_topk_xl_split(case, runtime_direction=True)
