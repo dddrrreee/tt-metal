@@ -312,7 +312,7 @@ ttnn::device_operation::ProgramArtifacts TransposeHCShardedProgramFactory::creat
     bool is_special_case = hc_rm_sharded_is_special_case(shard_height, H, C);
 
     auto& all_cores = shard_spec.grid;
-    uint32_t num_cores = shard_spec.num_cores();
+    const uint32_t num_cores = std::min<uint64_t>(shard_spec.num_cores(), uint64_t(N) * C * H / shard_height);
 
     log_debug(tt::LogOp, "all_cores: {}", all_cores);
     log_debug(tt::LogOp, "num_cores: {}", num_cores);
@@ -472,7 +472,7 @@ ttnn::device_operation::ProgramArtifacts TransposeHCShardedProgramFactory::creat
     spec.work_units.push_back(WorkUnitSpec{
         .name = "main",
         .kernels = is_special_case ? Group<KernelSpecName>{READER, WRITER} : Group<KernelSpecName>{READER},
-        .target_nodes = all_cores,
+        .target_nodes = CoreRangeSet(shard_cores),
     });
 
     // ---- run args ----
