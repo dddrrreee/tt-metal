@@ -23,10 +23,15 @@ class RMSNormLayer(AbstractModuleBase):
 
 
 class DeepSeekMLP(AbstractModuleBase):
-    """SwiGLU feed-forward network: w2(silu(w1(x)) * w3(x))."""
+    """SwiGLU MLP; TP input is replicated and its output is all-reduced."""
 
     def __init__(self, dim: int, inter_dim: int, *, tp_axis_name: str | None = None) -> None:
         super().__init__()
+        self.cluster_axis = (
+            ttml.mesh().axis_index(tp_axis_name)
+            if tp_axis_name is not None and ttml.mesh().axis_size(tp_axis_name) > 1
+            else None
+        )
         if tp_axis_name is not None:
             self.w1 = ColumnParallelLinear(
                 dim,
@@ -55,12 +60,17 @@ class DeepSeekMLP(AbstractModuleBase):
             self.w2 = LinearLayer(inter_dim, dim, has_bias=False)
 
     def forward(self, x: ttml.autograd.Tensor) -> ttml.autograd.Tensor:
-        return ttml.ops.swiglu.swiglu(
+        if self.cluster_axis is not None:
+            x = ttml.ops.distributed.broadcast(x, self.cluster_axis)
+        output = ttml.ops.swiglu.swiglu(
             x,
             self.w1.weight.tensor,
             self.w2.weight.tensor,
             self.w3.weight.tensor,
         )
+        if self.cluster_axis is not None:
+            output = ttml.ops.distributed.all_reduce(output, noop_backward=True, cluster_axis=self.cluster_axis)
+        return output
 
 
 def resolve_moe_ep_axis(config) -> str | None:

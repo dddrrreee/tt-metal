@@ -55,7 +55,7 @@ class SparseMoEEP(MoE):
         # this so EP can reuse the existing "tp" axis without introducing a new
         # axis name). Fall back to "tp" — with full-model TP enabled, that same
         # axis carries the EP-sharded experts.
-        # (DP + EP on the same axis would need an extra routing CCL, not used here.)
+        # When DP and EP share an axis, forward gathers and scatters the batch.
         if axis_name is None:
             axis_name = getattr(config, "moe_axis_name", None) or "tp"
         super().__init__(config, moe_axis_name=axis_name)
@@ -86,7 +86,8 @@ class SparseMoEEP(MoE):
             and mesh.axis_index("dp") == self.cluster_axis
         )
         if dp_gather:
-            x = ttml.ops.distributed.all_gather(x, 0, self.cluster_axis, ttml.ops.distributed.GradOutputType.SHARDED)
+            # Input-gradient broadcasts already sum EP contributions.
+            x = ttml.ops.distributed.all_gather(x, 0, self.cluster_axis, ttml.ops.distributed.GradOutputType.REPLICATED)
 
         B, _, S, _dim = list(x.get_value().shape)
         x = self._memory_snapshot(x, "START")
@@ -162,21 +163,15 @@ class SparseMoEEP(MoE):
             output = ttml.ops.distributed.all_reduce(output, noop_backward=True, cluster_axis=self.cluster_axis)
             output = self._memory_snapshot(output, "AFTER_ALL_REDUCE")
 
-        # Shared experts: not EP-sharded by default — they replicate work and
-        # don't need an all_reduce. If a downstream change makes them EP/TP,
-        # plug in the appropriate collective.
+        # For EP size > 1, the shared MLP broadcasts input and all-reduces output.
         if self.shared_experts is not None:
             x_shared = self._memory_snapshot(x, "BEFORE_SHARED")
             shared_out = self.shared_experts(x_shared)
             shared_out = self._memory_snapshot(shared_out, "AFTER_SHARED")
             pre_add_output = output
             output = ttml.ops.binary.add(pre_add_output, shared_out)
-            # binary.add's backward is just d_a = d_b = d_out (no read of inputs);
-            # the all_reduce above has noop_backward (identity), so its forward
-            # output is never read in bwd either; shared_out's parent linear (w2)
-            # also doesn't read shared_out itself for its weight grad (it reads w2's
-            # input, which is saved separately). All three sources confirm these
-            # two tensor values are not needed downstream — release them now.
+            # Add and the shared MLP do not read these output values during
+            # backward, so both forward outputs can be released now.
             pre_add_output.get_value().deallocate(force=True)
             shared_out.get_value().deallocate(force=True)
 
