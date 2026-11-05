@@ -25,10 +25,20 @@ void MorehSgdOperation::validate_inputs(
 
     if (tensor_args.param_out.has_value()) {
         check_tensor(tensor_args.param_out.value(), "moreh_sgd", "param_out", {DataType::BFLOAT16});
+        TT_FATAL(
+            tensor_args.param_out->logical_shape() == params_in.logical_shape(),
+            "moreh_sgd: param_out shape {} must match param_in shape {}",
+            tensor_args.param_out->logical_shape(),
+            params_in.logical_shape());
     }
 
     if (tensor_args.momentum_buffer_out.has_value()) {
         check_tensor(tensor_args.momentum_buffer_out.value(), "moreh_sgd", "momentum_buffer_out", {DataType::BFLOAT16});
+        TT_FATAL(
+            tensor_args.momentum_buffer_out->logical_shape() == params_in.logical_shape(),
+            "moreh_sgd: momentum_buffer_out shape {} must match param_in shape {}",
+            tensor_args.momentum_buffer_out->logical_shape(),
+            params_in.logical_shape());
     }
 };
 

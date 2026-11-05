@@ -128,3 +128,16 @@ def test_moreh_sgd_corner_cases(shape, provide_outputs, fp32_dest_acc_en, device
     run_moreh_sgd_test(
         shape, 0.9, 0.0, 0.5, True, device, provide_outputs=provide_outputs, fp32_dest_acc_en=fp32_dest_acc_en
     )
+
+
+@pytest.mark.parametrize("output_name", ["param_out", "momentum_buffer_out"])
+@pytest.mark.parametrize("output_shape", [(32, 64), (31, 32)])
+def test_moreh_sgd_rejects_wrong_output_shape(device, expect_error, output_name, output_shape):
+    def tensor(shape):
+        return ttnn.from_torch(torch.ones(shape, dtype=torch.bfloat16), layout=ttnn.TILE_LAYOUT, device=device)
+
+    param = tensor((32, 32))
+    grad = tensor((32, 32))
+    output = tensor(output_shape)
+    with expect_error(RuntimeError, f"{output_name} shape"):
+        ttnn.moreh_sgd(param, grad, None, lr=1.0, momentum=0.5, momentum_initialized=False, **{output_name: output})
