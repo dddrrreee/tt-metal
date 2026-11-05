@@ -261,9 +261,7 @@ ttnn::device_operation::ProgramArtifacts NLPCreateQKVHeadsDecodeInterleavedProgr
     };
 
     uint32_t num_cores = q_cores.num_cores();  // number of cores of the output
-    auto core_grid = q_cores.bounding_box();
-    uint32_t num_cores_x = core_grid.end_coord.x + 1, num_cores_y = core_grid.end_coord.y + 1;
-    const auto& cores = grid_to_cores(num_cores, num_cores_x, num_cores_y, true);
+    const auto cores = corerange_to_cores(q_cores, std::nullopt, true);
 
     KernelRunArgs reader_run_args{.kernel = READER};
     KernelRunArgs writer_run_args{.kernel = WRITER};

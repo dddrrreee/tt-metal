@@ -123,9 +123,7 @@ ttnn::device_operation::ProgramArtifacts NLPCreateQKVHeadsDecodeShardedProgramFa
 
     // cores for q
     uint32_t q_num_cores = q_cores.num_cores();  // number of cores of the output
-    auto q_core_grid = q_cores.bounding_box();
-    uint32_t q_num_cores_x = q_core_grid.end_coord.x + 1, q_num_cores_y = q_core_grid.end_coord.y + 1;
-    const auto& q_cores_vector = grid_to_cores(q_num_cores, q_num_cores_x, q_num_cores_y, true);
+    const auto q_cores_vector = corerange_to_cores(q_cores, std::nullopt, true);
 
     // cores for k
     uint32_t k_num_cores = k_cores.num_cores();  // number of cores of the output

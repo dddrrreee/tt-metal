@@ -40,6 +40,21 @@ void NLPCreateQKVHeadsDecodeDeviceOperation::validate_on_program_cache_miss(
             input_tensor.dtype() == tt::tt_metal::DataType::BFLOAT16,
         "Unsupported data format");
     TT_FATAL(input_tensor.layout() == Layout::TILE, "Only tile layout is supported for input tensor");
+    // The factories copy untransposed tiles a head-width column at a time: narrower or transposed tiles mix heads.
+    // The sharded reader steps a 32x32 tile between tiles of one shard, so 16x32 tiles need shards one tile wide.
+    const auto& tile = input_tensor.tensor_spec().tile();
+    const bool transposed = tile.get_transpose_within_face() || tile.get_transpose_of_faces();
+    const auto& input_shard = input_tensor.shard_spec();
+    const uint32_t shard_width = input_shard.has_value() ? input_shard->shape[1] : TILE_WIDTH;
+    TT_FATAL(
+        tile.get_width() == TILE_WIDTH && !transposed &&
+            (tile.get_height() == TILE_HEIGHT || shard_width == TILE_WIDTH),
+        "nlp_create_qkv_heads_decode needs untransposed tiles 32 wide, and 32x32 ones for a sharded input whose shards "
+        "are wider than one tile; got {}x{}{} tiles, shards {} wide",
+        tile.get_height(),
+        tile.get_width(),
+        transposed ? " transposed" : "",
+        shard_width);
 
     // input
     const uint32_t num_users_supported = 32;
