@@ -625,7 +625,14 @@ def test_moreh_layer_norm_compute_kernel_options(
     torch.manual_seed(2023)
     if dtype == ttnn.bfloat8_b:
         pytest.skip(f"bfloat8_b is not supported in the kernel")
-    run_moreh_layer_norm(input_shape_normalized_dims, elementwise_affine, eps, dtype, device, compute_kernel_options)
+    run_moreh_layer_norm(
+        input_shape_normalized_dims,
+        elementwise_affine,
+        eps,
+        dtype,
+        device,
+        compute_kernel_options=compute_kernel_options,
+    )
 
 
 @pytest.mark.parametrize("eps", [0.05], ids=["0.05"])

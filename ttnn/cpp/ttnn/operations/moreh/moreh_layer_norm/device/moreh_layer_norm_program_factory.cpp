@@ -138,7 +138,9 @@ tt::tt_metal::ProgramDescriptor MorehLayerNormOperation::ProgramFactory::create_
     const uint32_t in4_t = beta_has_value ? 2 * block_size : 0;   // beta
     const uint32_t in5_t = do_mask_h ? 1 : 0;                     // mask_h
     const uint32_t in6_t = do_mask_w ? 1 : 0;                     // mask_w
-    uint32_t in7_t = 0;
+    // The small FP32 path stores its shift anchor in the input format.
+    const bool use_bf16_anchor = fp32_dest_acc_en && arch != tt::ARCH::QUASAR;
+    uint32_t in7_t = use_bf16_anchor ? 1 : 0;
 
     const uint32_t out0_t = 2 * block_size;          // output
     const uint32_t out1_t = mean_has_value ? 1 : 0;  // mean
@@ -146,7 +148,7 @@ tt::tt_metal::ProgramDescriptor MorehLayerNormOperation::ProgramFactory::create_
 
     const uint32_t im0_t = 1;                                                         // E[x]
     uint32_t im1_t = num_inner;                                                       // x - E[x]
-    uint32_t im2_t = 1;                                                               // (x - E[x])^2
+    uint32_t im2_t = use_bf16_anchor ? 0 : 1;                                        // (x - E[x])^2
     const uint32_t im3_t = 1;                                                         // Sum[(x - E[x])^2]
     const uint32_t im4_t = 1;                                                         // E[(x - E[x])^2] = Var[x]
     const uint32_t im5_t = 1;                                                         // 1.0/(sqrt(Var[x] + eps))
@@ -160,7 +162,7 @@ tt::tt_metal::ProgramDescriptor MorehLayerNormOperation::ProgramFactory::create_
     const auto intermed_single_tile_size = tt::tile_size(intermed_cb_format);
 
     const uint32_t cb_usage =
-        ((in0_t + in1_t + in2_t + in3_t + in4_t + in5_t + in6_t + out0_t + out1_t + out2_t) * single_tile_size) +
+        ((in0_t + in1_t + in2_t + in3_t + in4_t + in5_t + in6_t + in7_t + out0_t + out1_t + out2_t) * single_tile_size) +
         ((im0_t + im1_t + im2_t + im3_t + im4_t + im5_t + im6_t + im7_t + im8_t) * intermed_single_tile_size);
     const uint32_t available_L1 =
         device->l1_size_per_core() - device->allocator()->get_base_allocator_addr(HalMemType::L1);
@@ -235,6 +237,9 @@ tt::tt_metal::ProgramDescriptor MorehLayerNormOperation::ProgramFactory::create_
 
     std::map<std::string, std::string> reader_defines_map{};
     std::map<std::string, std::string> compute_defines_map{};
+    if (cb_data_format == tt::DataFormat::Float16_b) {
+        compute_defines_map["MOREH_LN_BF16_INPUT"] = "1";
+    }
     if (gamma_has_value) {
         reader_defines_map["GAMMA_HAS_VALUE"] = "1";
     }

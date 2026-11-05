@@ -224,3 +224,129 @@ def test_moreh_layer_norm_backward_large_algorithm(device):
     run_moreh_layer_norm_backward(
         ([1, 2, 500, 1000], 2), True, 1e-5, ttnn.bfloat16, device, compute_kernel_options=False
     )
+
+
+@pytest.mark.merge_gate
+def test_moreh_layer_norm_fp32_near_constant(device):
+    import zlib
+
+    import numpy as np
+
+    def sample(name):
+        seed = np.random.SeedSequence([20261105, zlib.crc32(name.encode())])
+        return torch.from_numpy(np.random.Generator(np.random.PCG64(seed)).standard_normal(8).astype("float32"))
+
+    x = (1 + 0.003 * sample("x")).to(torch.bfloat16).reshape(1, 1, 1, 8)
+    gamma = (1 + 0.1 * sample("gamma").to(torch.bfloat16).float()).to(torch.bfloat16)
+    beta = sample("beta").to(torch.bfloat16)
+    expected = torch.nn.functional.layer_norm(x.double(), (8,), gamma.double(), beta.double(), 1e-5)
+
+    def to_device(tensor):
+        return ttnn.from_torch(tensor, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+
+    actual = ttnn.moreh_layer_norm(
+        to_device(x),
+        1,
+        1e-5,
+        to_device(gamma),
+        to_device(beta),
+        compute_kernel_config=ttnn.WormholeComputeKernelConfig(
+            math_fidelity=ttnn.MathFidelity.HiFi4,
+            math_approx_mode=False,
+            fp32_dest_acc_en=True,
+            packer_l1_acc=True,
+        ),
+    )[0]
+    actual = ttnn.to_torch(actual).reshape(x.shape).double()
+    relative_rms = (torch.linalg.vector_norm(actual - expected) / torch.linalg.vector_norm(expected)).item()
+    assert relative_rms < 0.01
+
+
+@pytest.mark.merge_gate
+@pytest.mark.parametrize(
+    "shape, normalized_dims",
+    [
+        ((1, 1, 32 * 256, 64), 1),
+        ((256, 1, 32, 8), 2),
+    ],
+    ids=["rows-and-width-tiles", "masked-scalar"],
+)
+def test_moreh_layer_norm_fp32_near_constant_reused_anchor(shape, normalized_dims, device):
+    import zlib
+
+    import numpy as np
+
+    seed = np.random.SeedSequence([20261105, zlib.crc32(b"x")])
+    sample = torch.from_numpy(np.random.Generator(np.random.PCG64(seed)).standard_normal(8).astype("float32"))
+    values = (1 + 0.003 * sample).to(torch.bfloat16)
+    x = values.repeat(torch.tensor(shape).prod().item() // 8).reshape(shape).float()
+    outer_shape = shape[:-normalized_dims]
+    offsets = (torch.arange(torch.tensor(outer_shape).prod().item()) % 2).reshape(
+        *outer_shape, *((1,) * normalized_dims)
+    )
+    x = (x - offsets * 0.125).to(torch.bfloat16)
+    # More outer tiles than cores forces at least one core to reuse the anchor buffer.
+    expected = torch.nn.functional.layer_norm(x.double(), shape[-normalized_dims:], eps=1e-5)
+    input_tensor = ttnn.from_torch(x, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    output = ttnn.moreh_layer_norm(
+        input_tensor,
+        normalized_dims,
+        1e-5,
+        compute_kernel_config=ttnn.WormholeComputeKernelConfig(
+            math_fidelity=ttnn.MathFidelity.HiFi4,
+            math_approx_mode=False,
+            fp32_dest_acc_en=True,
+            packer_l1_acc=True,
+        ),
+    )[0]
+    actual = ttnn.to_torch(output).reshape(shape).double()
+    relative_rms = (torch.linalg.vector_norm(actual - expected) / torch.linalg.vector_norm(expected)).item()
+    assert relative_rms < 0.01
+
+
+@pytest.mark.merge_gate
+def test_moreh_layer_norm_fp32_masked_alternating_offsets(device):
+    shape = (256, 1, 17, 31)
+    indices = torch.arange(256 * 17 * 31).reshape(shape)
+    values = torch.tensor([1.0, 1.0, 0.99609375, 1.0, 1.0, 1.0, 1.0, 1.0])
+    x = (values[indices % 8] - ((indices // (17 * 31)) % 2) * 0.125).to(torch.bfloat16)
+    expected = torch.nn.functional.layer_norm(x.double(), shape[-2:], eps=1e-5)
+    input_tensor = ttnn.from_torch(x, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    output = ttnn.moreh_layer_norm(
+        input_tensor,
+        2,
+        1e-5,
+        compute_kernel_config=ttnn.WormholeComputeKernelConfig(
+            math_fidelity=ttnn.MathFidelity.HiFi4,
+            math_approx_mode=False,
+            fp32_dest_acc_en=True,
+            packer_l1_acc=True,
+        ),
+    )[0]
+    actual = ttnn.to_torch(output).reshape(shape).double()
+    relative_rms = (torch.linalg.vector_norm(actual - expected) / torch.linalg.vector_norm(expected)).item()
+    assert relative_rms < 0.014142135623730172
+
+
+@pytest.mark.merge_gate
+@pytest.mark.parametrize("value", [2.0**127, 1.0 + 2.0**-4], ids=["near-float-max", "near-constant"])
+def test_moreh_layer_norm_fp32_constant_row_mean(value, device):
+    # A constant row of 64 values (two width tiles) with FP32 accumulation and a requested mean: the mean must be the value.
+    # 2**127 is the largest power of two the sum of two tiles can hold only if it is scaled first.
+    x = torch.full((1, 1, 1, 64), value).to(torch.bfloat16)
+    tt_mean = to_ttnn(torch.full((1, 1, 1), float("nan")), device=device)
+    ttnn.moreh_layer_norm(
+        to_ttnn(x, device=device),
+        1,
+        1e-5,
+        mean=tt_mean,
+        compute_kernel_config=ttnn.WormholeComputeKernelConfig(
+            math_fidelity=ttnn.MathFidelity.HiFi4,
+            math_approx_mode=False,
+            fp32_dest_acc_en=True,
+            packer_l1_acc=True,
+        ),
+    )
+    actual = to_torch(tt_mean, shape=(1, 1, 1)).double()
+    assert torch.isfinite(actual).all()
+    assert abs(actual.item() - value) <= 0.01 * value

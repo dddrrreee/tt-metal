@@ -77,7 +77,7 @@ void kernel_main() {
     DataflowBuffer dfb_xmm_obj(cb_xmm);  // x - E[x]
     constexpr auto cb_xmm2 = tt::CBIndex::c_26;
     DataflowBuffer dfb_xmm2_obj(cb_xmm2);
-    constexpr auto cb_xmm2sum = tt::CBIndex::c_27;
+    static constexpr auto cb_xmm2sum = tt::CBIndex::c_27;
     DataflowBuffer dfb_xmm2sum_obj(cb_xmm2sum);
     constexpr auto cb_var = tt::CBIndex::c_28;
     DataflowBuffer dfb_var_obj(cb_var);
@@ -156,8 +156,14 @@ void kernel_main() {
     dfb_zero_obj.wait_front(1);
 
     constexpr auto bc_dim = is_lastdim_layernorm ? ckl::BroadcastDim::Col : ckl::BroadcastDim::Scalar;
+#if defined(FP32_DEST_ACC_EN) && !defined(ARCH_QUASAR)
+    constexpr auto cb_r = !is_groupnorm ? tt::CBIndex::c_7 : cb_xmm2;
+    DataflowBuffer dfb_anchor_obj(cb_r);
+    auto& dfb_r_obj = !is_groupnorm ? dfb_anchor_obj : dfb_xmm2_obj;
+#else
     constexpr auto cb_r = cb_xmm2;
     auto& dfb_r_obj = dfb_xmm2_obj;
+#endif
     constexpr auto rr_input = ckl::input(
         cb_r,
         is_lastdim_layernorm ? ckl::BroadcastDim::Col : ckl::BroadcastDim::Scalar,
@@ -167,6 +173,16 @@ void kernel_main() {
         kDataFormatReconfig,
         ckl::TileAddressing::Offset);
     constexpr uint32_t kTileMeanBits = get_compile_time_arg_val(11);
+#if defined(FP32_DEST_ACC_EN) && defined(MOREH_LN_BF16_INPUT) && !defined(ARCH_QUASAR)
+    // The reader truncates the reduction scaler to BF16. Recover the full reduction scale.
+    constexpr uint32_t kFirstW = origin_W < 32 ? origin_W : 32;
+    constexpr uint32_t kFirstH = is_lastdim_layernorm ? 1 : (origin_H < 32 ? origin_H : 32);
+    constexpr uint32_t kFullN = is_lastdim_layernorm ? origin_W :
+        origin_H * origin_W * (num_inner / (origin_Ht * origin_Wt));
+    constexpr float kTileFactor = __builtin_bit_cast(float, kTileMeanBits);
+    constexpr uint32_t kCorrectionBits = __builtin_bit_cast(uint32_t,
+        kTileFactor * static_cast<float>(kFirstH * kFirstW) / static_cast<float>(kFullN));
+#endif
     constexpr uint32_t kLevel = ln_level_tiles(num_inner);
     auto ln_masked = [](uint32_t w) {
         return (do_mask_h && need_to_do_mask_h(w, origin_Ht, origin_Wt)) || (do_mask_w && ((w + 1) % origin_Wt == 0));
@@ -175,6 +191,48 @@ void kernel_main() {
     for (uint32_t outer_idx = 0; outer_idx < num_rows_per_core; outer_idx++) {
         dfb_x_obj.wait_front(num_inner);
 
+#if defined(FP32_DEST_ACC_EN) && defined(MOREH_LN_BF16_INPUT) && !defined(ARCH_QUASAR)
+        if constexpr (!is_groupnorm) {
+            // Estimate the first-tile mean from BF16 differences to avoid rounding a large sum.
+            constexpr auto x_ref_input = ckl::input(
+                cb_x, bc_dim, ckl::WaitPolicy::None, ckl::PopPolicy::None,
+                ckl::InputTileMapping::Scalar, kDataFormatReconfig, ckl::TileAddressing::Offset);
+            constexpr auto var_offset_input = ckl::input(
+                cb_var, ckl::WaitPolicy::None, ckl::PopPolicy::None,
+                ckl::InputTileMapping::Scalar, kDataFormatReconfig, ckl::TileAddressing::Offset);
+            ckl::eltwise_chain(
+                ckl::IterationShape::one_tile(),
+                ckl::BinaryFpu<ckl::BinaryFpuOp::Sub, x_scalar_offset_input, x_ref_input>{
+                    dfb_x_obj, dfb_x_obj, first_tile, first_tile},
+                ckl::runtime_if(
+                    do_mask_h && need_to_do_mask_h(0, origin_Ht, origin_Wt),
+                    ckl::CopyTile<mask_h_scalar_offset_input, ckl::Dst::D1>{dfb_mask_h_obj, first_tile},
+                    ckl::Mask<>{}),
+                ckl::runtime_if(
+                    do_mask_w && (1 % origin_Wt == 0),
+                    ckl::CopyTile<mask_w_scalar_offset_input, ckl::Dst::D1>{dfb_mask_w_obj, first_tile},
+                    ckl::Mask<>{}),
+                ckl::PackTile<ckl::output(
+                    cb_ex, ckl::ReservePolicy::PerTile, ckl::PushPolicy::PerTile, kDataFormatReconfig)>{dfb_ex_obj});
+            ckl::reduce<REDUCE_OP, REDUCE_DIM, cb_ex, cb_scaler, cb_var>(
+                ckl::ReduceInputBlockShape::single(),
+                ckl::ReduceInputMemoryLayout::contiguous(),
+                ckl::NoAccumulation{},
+                [](uint32_t dst_idx) {
+                    binop_with_scalar_tile_init();
+                    mul_unary_tile(dst_idx, kTileMeanBits);
+                });
+            dfb_var_obj.wait_front(onetile);
+            ckl::eltwise_chain(
+                ckl::IterationShape::one_tile(),
+                ckl::BinaryFpu<ckl::BinaryFpuOp::Add, var_offset_input, x_ref_input>{
+                    dfb_var_obj, dfb_x_obj, first_tile, first_tile},
+                ckl::PackTile<ckl::output(
+                    cb_r, ckl::ReservePolicy::PerTile, ckl::PushPolicy::PerTile, kDataFormatReconfig)>{dfb_r_obj});
+            dfb_var_obj.pop_front(onetile);
+        } else
+#endif
+        {
         constexpr auto cb_tmp = cb_ex;
         constexpr bool kTile0Masked =
             (do_mask_h && (1 % origin_Ht == 0)) || (do_mask_w && (1 % origin_Wt == 0));
@@ -211,6 +269,7 @@ void kernel_main() {
                 });
         }
 
+        }
         dfb_r_obj.wait_front(onetile);
 
         /*
@@ -245,7 +304,19 @@ void kernel_main() {
         /*
          * cb_ex
          */
+#if defined(FP32_DEST_ACC_EN) && defined(MOREH_LN_BF16_INPUT) && !defined(ARCH_QUASAR)
+        if constexpr (!is_groupnorm) {
+            ckl::reduce<REDUCE_OP, REDUCE_DIM, cb_xsum, cb_scaler, cb_ex>(
+                ckl::ReduceInputBlockShape::single(), ckl::ReduceInputMemoryLayout::contiguous(),
+                ckl::NoAccumulation{}, [](uint32_t dst_idx) {
+                    binop_with_scalar_tile_init();
+                    mul_unary_tile(dst_idx, kCorrectionBits);
+                });
+        } else
+#endif
+        {
         ckl::reduce<REDUCE_OP, REDUCE_DIM, cb_xsum, cb_scaler, cb_ex>(ckl::ReduceInputBlockShape::single());
+        }
         dfb_ex_obj.wait_front(onetile);
 
         if constexpr (mean_has_value) {
@@ -325,7 +396,19 @@ void kernel_main() {
          * E[(x-E[x])^2 = Var[x] - reduce single pre-accumulated tile
          * cb_var
          */
+#if defined(FP32_DEST_ACC_EN) && defined(MOREH_LN_BF16_INPUT) && !defined(ARCH_QUASAR)
+        if constexpr (!is_groupnorm) {
+            ckl::reduce<REDUCE_OP, REDUCE_DIM, cb_xmm2sum, cb_scaler, cb_var>(
+                ckl::ReduceInputBlockShape::single(), ckl::ReduceInputMemoryLayout::contiguous(),
+                ckl::NoAccumulation{}, [](uint32_t dst_idx) {
+                    binop_with_scalar_tile_init();
+                    mul_unary_tile(dst_idx, kCorrectionBits);
+                });
+        } else
+#endif
+        {
         ckl::reduce<REDUCE_OP, REDUCE_DIM, cb_xmm2sum, cb_scaler, cb_var>(ckl::ReduceInputBlockShape::single());
+        }
 
         /*
          * 1.0/(sqrt(E[(x-E[x])^2] + eps))
