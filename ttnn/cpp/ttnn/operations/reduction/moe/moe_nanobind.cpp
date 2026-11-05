@@ -36,7 +36,7 @@ void bind_reduction_moe_operation(nb::module_& mod) {
 
             Keyword Args:
                 memory_config (ttnn.MemoryConfig, optional): Memory Config of the output tensors
-                output_tensor (Optional[ttnn.Tensor]): preallocated output tensors
+                output_tensor (Optional[ttnn.Tensor]): preallocated output tensor. Its padded shape must match the padded input_tensor on dimensions 0..2 and have last dimension 32; for zero-volume inputs, its logical shape must match the logical input_tensor with last dimension 1.
 
             Returns:
                 ttnn.Tensor: the output tensor.
@@ -64,6 +64,7 @@ void bind_reduction_moe_operation(nb::module_& mod) {
                 - All of the above shape validations are performed on padded shapes.
                 - For the :attr:`topk_mask_tensor`, the logical shape must be row-broadcastable (N, C, H must be 1) and the W must match :attr:`k` (i.e. 32). The padded shape H must be 32.
                 - For the :attr:`expert_mask_tensor`, the logical shape must be row-broadcastable (N, C, H must be 1) and the W must match W of the :attr:`input_tensor`. The padded shape H must be 32.
+                - If :attr:`output_tensor` is provided, its padded shape must match the padded :attr:`input_tensor` on dimensions 0..2 and have last dimension 32; for zero-volume inputs, its logical shape must match the logical :attr:`input_tensor` with last dimension 1.
                 - Sharding is not supported for this operation.
 
         )doc";

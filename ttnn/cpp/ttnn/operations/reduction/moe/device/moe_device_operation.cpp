@@ -73,6 +73,18 @@ void MoeDeviceOperation::validate_on_program_cache_miss(
         input_logical_shape[-1]);
     TT_FATAL(topk_shape[-2] == 32, "Topk shape inner dim must be padded to 32, got {}", topk_shape[-2]);
     TT_FATAL(expert_shape[-2] == 32, "Expert shape inner dim must be padded to 32, got {}", expert_shape[-2]);
+
+    if (tensor_args.preallocated_output.has_value()) {
+        // The program sizes its output buffers from the output tensor and writes one tile per padded input tile row.
+        auto expected_padded_shape = input_shape;
+        expected_padded_shape[-1] = 32;
+        const auto& output_shape = tensor_args.preallocated_output->padded_shape();
+        TT_FATAL(
+            output_shape == expected_padded_shape,
+            "output_tensor padded shape {} must equal expected padded shape {}",
+            output_shape,
+            expected_padded_shape);
+    }
 }
 
 tt::tt_metal::TensorSpec MoeDeviceOperation::compute_output_specs(
