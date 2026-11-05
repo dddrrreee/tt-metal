@@ -434,6 +434,7 @@ class Attention(LightweightModule):
         ttnn.deallocate(xqkv_fused)
 
         if self.head_dim != self.padded_head_dim:
+            global global_padded_head_warning_shown
             if not global_padded_head_warning_shown:
                 logger.warning(
                     f"For decode mode, pad rot_mats to the padded head dim shape ahead of time for performance reasons. {rot_mats[0].shape=} {self.padded_head_dim=}"
