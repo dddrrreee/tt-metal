@@ -41,6 +41,7 @@ ttnn::device_operation::ProgramArtifacts ScatterProgramFactory::create_program_a
 
     // output row byte size (the writer walks each output stick in chunks of this many bytes)
     const uint32_t output_stick_size_bytes = output_stick_size * output_datum_size;
+    validate_output_page_holds_row(output_tensor);
 
     // maximal input/index/source/output chunk size, divisible by 32, calculated as follows:
     // BH available L1 mem size of nearly 1.5 MB...

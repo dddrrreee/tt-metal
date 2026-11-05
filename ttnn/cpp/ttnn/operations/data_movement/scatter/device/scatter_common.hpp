@@ -10,6 +10,7 @@
 #include "ttnn/tensor/tensor.hpp"
 
 #include <cstdint>
+#include <enchantum/enchantum.hpp>
 
 namespace ttnn::prim {
 
@@ -28,6 +29,22 @@ inline uint64_t ceil32(const uint64_t& number) {
 inline uint32_t calculate_optimal_chunk_size(const ttnn::Tensor& input_tensor) {
     uint32_t l1_per_chunk = (ttnn::operations::data_movement::get_max_l1_space(input_tensor) / 4) / 4;
     return ceil32((l1_per_chunk * 9 / 10) - 32);
+}
+
+// The writers write output row i to page i (get_noc_addr(i) + offset, up to the whole row), so each page must hold
+// a whole row. A ROW_MAJOR output sharded narrower than a row has several pages per row: those writes land on
+// other rows and, from the last row of a shard, past the end of the shard. The output given here is the device
+// operation's, whose last axis is the scatter axis.
+inline void validate_output_page_holds_row(const ttnn::Tensor& output_tensor) {
+    const uint32_t row_bytes = output_tensor.logical_shape()[-1] * output_tensor.element_size();
+    const uint32_t page_bytes = output_tensor.tensor_spec().compute_page_size_bytes();
+    TT_FATAL(
+        page_bytes >= row_bytes,
+        "scatter: the {} output's shards are {} elements wide, narrower than its rows of {} elements along the "
+        "scatter dim; use an output whose shards hold whole rows, for example interleaved or HEIGHT_SHARDED.",
+        enchantum::to_string(output_tensor.memory_config().memory_layout()),
+        page_bytes / output_tensor.element_size(),
+        output_tensor.logical_shape()[-1]);
 }
 
 }  // namespace ttnn::prim

@@ -1083,3 +1083,89 @@ def test_scatter_block_float_operands(input_dtype, source_dtype, device):
         ttnn.to_torch(ttnn_input).to(torch.bfloat16), dim, torch_index, ttnn.to_torch(ttnn_src).to(torch.bfloat16)
     )
     assert_allclose(ttnn.to_torch(ttnn_result).to(torch.bfloat16), torch_result)
+
+
+def l1_sharded_memory_config(memory_layout, end_x, end_y, shard_shape):
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(end_x, end_y))})
+    if memory_layout is None:  # ND sharding
+        return ttnn.MemoryConfig(ttnn.BufferType.L1, ttnn.NdShardSpec(ttnn.Shape(shard_shape), grid))
+    spec = ttnn.ShardSpec(grid, shard_shape, ttnn.ShardOrientation.ROW_MAJOR)
+    return ttnn.MemoryConfig(memory_layout, ttnn.BufferType.L1, spec)
+
+
+# The writers write each output row to one page. A ROW_MAJOR output sharded narrower than a row has several
+# pages per row, so rows were written over other rows and, from the last row of a shard, past its end.
+@pytest.mark.parametrize(
+    "memory_layout, end_x, end_y, shard_shape",
+    [
+        (ttnn.TensorMemoryLayout.BLOCK_SHARDED, 1, 1, [32, 16]),
+        (ttnn.TensorMemoryLayout.WIDTH_SHARDED, 1, 0, [64, 16]),
+        (None, 3, 0, [1, 1, 32, 16]),
+    ],
+)
+@pytest.mark.parametrize(
+    "dtype, reduce",
+    [
+        (ttnn.bfloat16, None),  # general program
+        (ttnn.bfloat16, "multiply"),  # bfloat16 reduction program
+        (ttnn.int32, "add"),  # general program, scatter_add
+    ],
+)
+@pytest.mark.parametrize("dim", [-1, -2])
+def test_scatter_rejects_output_shards_narrower_than_a_row(
+    memory_layout, end_x, end_y, shard_shape, dtype, reduce, dim, device, expect_error
+):
+    torch.manual_seed(0)
+    shape = [2, 1, 32, 32]
+    torch_dtype = torch.bfloat16 if dtype == ttnn.bfloat16 else torch.int32
+    torch_input = torch.randint(-9, 9, shape).to(torch_dtype)
+    torch_index = rand_scatter_index(shape, dim, shape[dim], torch.int64)
+    torch_src = torch.randint(-9, 9, shape).to(torch_dtype)
+
+    ttnn_input = ttnn.from_torch(torch_input, dtype=dtype, layout=ttnn.ROW_MAJOR_LAYOUT, device=device)
+    ttnn_index = ttnn.from_torch(torch_index, dtype=ttnn.int32, layout=ttnn.ROW_MAJOR_LAYOUT, device=device)
+    ttnn_src = ttnn.from_torch(torch_src, dtype=dtype, layout=ttnn.ROW_MAJOR_LAYOUT, device=device)
+    memory_config = l1_sharded_memory_config(memory_layout, end_x, end_y, shard_shape)
+
+    if memory_layout is None:
+        layout_name = "ND_SHARDED"
+    elif memory_layout == ttnn.TensorMemoryLayout.BLOCK_SHARDED:
+        layout_name = "BLOCK_SHARDED"
+    else:
+        layout_name = "WIDTH_SHARDED"
+    message = f"{layout_name} output's shards are 16 elements wide, narrower than its rows of 32 elements"
+    with expect_error(RuntimeError, message):
+        ttnn.scatter(ttnn_input, dim, ttnn_index, ttnn_src, memory_config=memory_config, reduce=reduce)
+
+
+# Shards that hold whole rows of the device operation's output still work. The last case's shards are narrower
+# than the final [1, 1, 32, 64] output's rows, but the device operation writes the transposed [1, 1, 64, 32] one,
+# and the final transpose handles the narrow shards.
+@pytest.mark.parametrize(
+    "shape, dim, memory_layout, end_x, end_y, shard_shape",
+    [
+        ([2, 1, 32, 32], -1, ttnn.TensorMemoryLayout.HEIGHT_SHARDED, 1, 0, [32, 32]),
+        ([2, 1, 32, 32], -1, ttnn.TensorMemoryLayout.BLOCK_SHARDED, 0, 1, [32, 32]),
+        ([2, 1, 32, 32], -1, ttnn.TensorMemoryLayout.WIDTH_SHARDED, 0, 0, [64, 32]),
+        ([2, 1, 32, 32], -1, None, 1, 0, [1, 1, 32, 32]),
+        ([1, 1, 32, 64], -2, ttnn.TensorMemoryLayout.BLOCK_SHARDED, 1, 1, [32, 32]),
+    ],
+)
+@pytest.mark.parametrize("reduce", [None, "multiply"])
+def test_scatter_output_shards_holding_whole_rows(shape, dim, memory_layout, end_x, end_y, shard_shape, reduce, device):
+    torch.manual_seed(0)
+    torch_input = torch.randn(shape, dtype=torch.bfloat16)
+    torch_index = rand_scatter_index(shape, dim, shape[dim], torch.int64)
+    torch_src = torch.randn(shape, dtype=torch.bfloat16)
+
+    ttnn_input = ttnn.from_torch(torch_input, dtype=ttnn.bfloat16, layout=ttnn.ROW_MAJOR_LAYOUT, device=device)
+    ttnn_index = ttnn.from_torch(torch_index, dtype=ttnn.int32, layout=ttnn.ROW_MAJOR_LAYOUT, device=device)
+    ttnn_src = ttnn.from_torch(torch_src, dtype=ttnn.bfloat16, layout=ttnn.ROW_MAJOR_LAYOUT, device=device)
+    memory_config = l1_sharded_memory_config(memory_layout, end_x, end_y, shard_shape)
+
+    ttnn_result = ttnn.scatter(ttnn_input, dim, ttnn_index, ttnn_src, memory_config=memory_config, reduce=reduce)
+    if reduce is None:
+        torch_result = torch.scatter(torch_input, dim, torch_index, torch_src)
+    else:
+        torch_result = torch.scatter(torch_input, dim, torch_index, torch_src, reduce=reduce)
+    assert_allclose(ttnn.to_torch(ttnn_result), torch_result)
