@@ -419,7 +419,9 @@ void kernel_main() {
     DataflowBuffer dfb_scale_mask_obj(dfb_scale_mask);
 #endif
     compute_kernel_hw_startup(dfb_in0, dfb_max_scaler, dfb_exps);
+    reconfig_data_format_srca(dfb_in0, dfb_mask_padded);
     copy_init(dfb_mask_padded);
+    reconfig_data_format_srca(dfb_mask_padded, dfb_in0);
 
     dfb_max_scaler_obj.wait_front(1);  // comes from the reader
     dfb_sum_scaler_obj.wait_front(1);  // comes from the reader
