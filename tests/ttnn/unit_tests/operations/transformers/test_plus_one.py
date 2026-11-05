@@ -2,6 +2,8 @@
 
 # SPDX-License-Identifier: Apache-2.0
 
+import os
+
 import pytest
 
 import torch
@@ -148,3 +150,85 @@ def test_plus_one_multi_core_sub_core_grids(device, memory_config):
         input_tensor, sub_core_grids=ttnn.CoreRangeSet([ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(3, 0))])
     )
     assert torch.equal(ttnn.to_torch(input_tensor), torch_input_tensor + 1)
+
+
+@pytest.mark.parametrize(
+    "layout,shape,shard_shape,grid_end",
+    [
+        (ttnn.TensorMemoryLayout.HEIGHT_SHARDED, (8, 32), (4, 32), (1, 0)),
+        (ttnn.TensorMemoryLayout.WIDTH_SHARDED, (8, 64), (8, 32), (1, 0)),
+        (ttnn.TensorMemoryLayout.BLOCK_SHARDED, (8, 64), (4, 32), (1, 1)),
+        (ttnn.TensorMemoryLayout.WIDTH_SHARDED, (8, 1), (8, 16), (0, 0)),
+    ],
+)
+@pytest.mark.parametrize("explicit_grid", [False, True])
+@pytest.mark.parametrize("skip_negative_entries", [False, True])
+def test_plus_one_multi_row_shards(device, layout, shape, shard_shape, grid_end, explicit_grid, skip_negative_entries):
+    offset = int(explicit_grid)
+    grid = ttnn.CoreRangeSet(
+        [ttnn.CoreRange(ttnn.CoreCoord(offset, offset), ttnn.CoreCoord(grid_end[0] + offset, grid_end[1] + offset))]
+    )
+    memory_config = ttnn.MemoryConfig(
+        layout, ttnn.BufferType.L1, ttnn.ShardSpec(grid, shard_shape, ttnn.ShardOrientation.ROW_MAJOR)
+    )
+    x = (torch.arange(shape[0] * shape[1], dtype=torch.int32).reshape(shape) % 41) - 3
+    tensor = ttnn.from_torch(
+        x, dtype=ttnn.int32, layout=ttnn.ROW_MAJOR_LAYOUT, device=device, memory_config=memory_config
+    )
+    expected = torch.where(x < 0, x, x + 1) if skip_negative_entries else x + 1
+    ttnn.plus_one(tensor, sub_core_grids=grid if explicit_grid else None, skip_negative_entries=skip_negative_entries)
+    assert torch.equal(ttnn.to_torch(tensor), expected)
+
+
+@pytest.mark.skipif(
+    os.environ.get("TT_METAL_ALLOCATOR_MODE_HYBRID") != "1", reason="Requires TT_METAL_ALLOCATOR_MODE_HYBRID=1"
+)
+@pytest.mark.parametrize("mesh_device", [1], indirect=True)
+@pytest.mark.parametrize("dtype", [ttnn.int32, ttnn.uint32])
+@pytest.mark.parametrize("orientation", [ttnn.ShardOrientation.ROW_MAJOR, ttnn.ShardOrientation.COL_MAJOR])
+@pytest.mark.parametrize("skip_negative_entries", [False, True])
+def test_plus_one_unused_shard_cores(mesh_device, dtype, orientation, skip_negative_entries):
+    grid = ttnn.CoreRangeSet([ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(1, 1))])
+    unused_core = ttnn.CoreCoord(1, 1)
+    guard_grid = ttnn.CoreRangeSet([ttnn.CoreRange(unused_core, unused_core)])
+    memory = ttnn.MemoryConfig(
+        ttnn.TensorMemoryLayout.HEIGHT_SHARDED,
+        ttnn.BufferType.L1,
+        ttnn.ShardSpec(grid, [2, 32], orientation),
+    )
+    memory.experimental_set_range_lockstep_allocation(True)
+    guard_memory = ttnn.MemoryConfig(
+        ttnn.TensorMemoryLayout.HEIGHT_SHARDED,
+        ttnn.BufferType.L1,
+        ttnn.ShardSpec(guard_grid, [2, 32], orientation),
+    )
+    guard_memory.experimental_set_per_core_allocation(True)
+    mapper = ttnn.ReplicateTensorToMesh(mesh_device)
+    composer = ttnn.ConcatMeshToTensor(mesh_device, dim=0)
+    guard_data = torch.full((2, 32), 123, dtype=torch.int32)
+    guard = ttnn.from_torch(
+        guard_data,
+        dtype=dtype,
+        layout=ttnn.ROW_MAJOR_LAYOUT,
+        device=mesh_device,
+        mesh_mapper=mapper,
+        memory_config=guard_memory,
+    )
+    x = torch.arange(128, dtype=torch.int32).reshape(4, 32)
+    if dtype == ttnn.int32:
+        x -= 3
+    tensor = ttnn.from_torch(
+        x,
+        dtype=dtype,
+        layout=ttnn.ROW_MAJOR_LAYOUT,
+        device=mesh_device,
+        mesh_mapper=mapper,
+        memory_config=memory,
+    )
+    (coord,) = guard.device_coords()
+    assert tensor.buffer_address() == guard.experimental_per_core_buffer_address(coord, unused_core)
+    for _ in range(2):
+        ttnn.plus_one(tensor, skip_negative_entries=skip_negative_entries)
+        x = torch.where(x < 0, x, x + 1) if skip_negative_entries else x + 1
+        assert torch.equal(ttnn.to_torch(guard, mesh_composer=composer).to(torch.int64), guard_data.to(torch.int64))
+        assert torch.equal(ttnn.to_torch(tensor, mesh_composer=composer).to(torch.int64), x.to(torch.int64))

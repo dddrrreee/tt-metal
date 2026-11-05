@@ -66,6 +66,8 @@ void kernel_main() {
 #endif
         noc.async_write(in0, s0, stick_size, {.offset_bytes = 0}, {.page_id = h});
         noc.async_write_barrier();
+#else
+        stick += stick_size / sizeof(uint32_t);
 #endif
     }
 }

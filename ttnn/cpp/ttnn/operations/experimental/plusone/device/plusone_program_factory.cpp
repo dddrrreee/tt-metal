@@ -32,6 +32,8 @@ ttnn::device_operation::ProgramArtifacts PlusOneProgramFactory::create_program_a
     CoreRangeSet all_cores = CoreRangeSet(std::vector{CoreRange({0, 0}, {0, 0})});
     if (operation_attributes.sub_core_grids.has_value()) {
         all_cores = operation_attributes.sub_core_grids.value();
+    } else if (input.is_sharded() && input.shard_spec().has_value()) {
+        all_cores = input.buffer()->buffer_distribution_spec()->core_groups().cores_with_data;
     }
     // Interleaved input is not split across cores, so each extra core would add one more increment
     // to every value. Run it on one core.
@@ -42,7 +44,10 @@ ttnn::device_operation::ProgramArtifacts PlusOneProgramFactory::create_program_a
     const auto& input_shape = input.padded_shape();
     uint32_t W = input_shape[-1];
     uint32_t H = 1;
-    if (!input.is_sharded() && input_shape.size() > 1) {
+    if (input.is_sharded() && input.shard_spec().has_value()) {
+        H = input.shard_spec()->shape[0];
+        W = input.buffer()->page_size() / input_unit_size;
+    } else if (!input.is_sharded() && input_shape.size() > 1) {
         for (uint32_t i = 0; i < input_shape.size() - 1; ++i) {
             H *= input_shape[i];
         }
