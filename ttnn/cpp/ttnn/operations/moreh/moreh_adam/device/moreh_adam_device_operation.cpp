@@ -5,6 +5,7 @@
 #include "moreh_adam_device_operation.hpp"
 #include "ttnn/tensor/tensor_ops.hpp"
 
+#include <array>
 #include <cstdint>
 
 #include "ttnn/device_operation.hpp"
@@ -14,7 +15,7 @@
 
 namespace ttnn::operations::moreh::moreh_adam {
 void MorehAdamOperation::validate_inputs(
-    const operation_attributes_t& /*operation_attributes*/, const tensor_args_t& tensor_args) {
+    const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
     const auto& params_in = tensor_args.param_in;
     const auto& grad = tensor_args.grad;
     const auto& exp_avg_in = tensor_args.exp_avg_in;
@@ -25,26 +26,27 @@ void MorehAdamOperation::validate_inputs(
     check_tensor(exp_avg_in, "moreh_adam", "exp_avg_in");
     check_tensor(exp_avg_sq_in, "moreh_adam", "exp_avg_sq_in");
 
+    TT_FATAL(
+        !operation_attributes.amsgrad || tensor_args.max_exp_avg_sq_in.has_value(),
+        "amsgrad=True requires max_exp_avg_sq_in");
+
     if (tensor_args.max_exp_avg_sq_in) {
         check_tensor(*tensor_args.max_exp_avg_sq_in, "moreh_adam", "max_exp_avg_sq_in");
     }
 
-    const auto& params_out = tensor_args.output_tensors.at(0);
-
-    if (params_out.has_value()) {
-        check_tensor(params_out.value(), "moreh_adam", "params_out");
-    }
-
-    if (tensor_args.output_tensors.at(1).has_value()) {
-        check_tensor(tensor_args.output_tensors.at(1).value(), "moreh_adam", "exp_avg_out");
-    }
-
-    if (tensor_args.output_tensors.at(2).has_value()) {
-        check_tensor(tensor_args.output_tensors.at(2).value(), "moreh_adam", "exp_avg_sq_out");
-    }
-
-    if (tensor_args.output_tensors.at(3).has_value()) {
-        check_tensor(tensor_args.output_tensors.at(3).value(), "moreh_adam", "max_exp_avg_sq_out");
+    const std::array<const char*, 4> output_names = {
+        "param_out", "exp_avg_out", "exp_avg_sq_out", "max_exp_avg_sq_out"};
+    for (size_t i = 0; i < output_names.size(); ++i) {
+        const auto& output = tensor_args.output_tensors.at(i);
+        if (output.has_value()) {
+            check_tensor(*output, "moreh_adam", output_names[i]);
+            TT_FATAL(
+                output->logical_shape() == params_in.logical_shape(),
+                "{} must have the same logical shape as param_in: got {}, expected {}",
+                output_names[i],
+                output->logical_shape(),
+                params_in.logical_shape());
+        }
     }
 }
 
