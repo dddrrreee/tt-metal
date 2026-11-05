@@ -125,12 +125,13 @@ get_padded_slice_runtime_args_rm_sharded_output(
     uint32_t start_offset = ttnn::operations::data_movement::get_rm_start_offset(input_tensor, output_tensor_start);
 
     uint32_t core_index = 0;
+    const CoreCoord grid_start = output_shard_spec.grid.bounding_box().start_coord;
     for (const auto& core : cores) {
         uint32_t core_w_index = 0;
         uint32_t core_h_index = core_index;
         if (is_block_sharded) {
-            core_w_index = rm_orientation ? core.x : core.y;
-            core_h_index = rm_orientation ? core.y : core.x;
+            core_w_index = rm_orientation ? core.x - grid_start.x : core.y - grid_start.y;
+            core_h_index = rm_orientation ? core.y - grid_start.y : core.x - grid_start.x;
         } else if (is_width_sharded) {
             core_h_index = 0;
             core_w_index = core_index;
