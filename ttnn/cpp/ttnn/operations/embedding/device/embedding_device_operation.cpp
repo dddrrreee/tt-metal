@@ -109,6 +109,27 @@ void EmbeddingsDeviceOperation::validate_on_program_cache_miss(
                 !operation_attributes.pad_token.has_value(),
                 "Pad token must not be specified when PADDED Embeddings Type is not specified");
     }
+    if (a.layout() == Layout::TILE) {
+        // The tilized-indices factory writes each output row as one page of the whole row. A row-major page of a
+        // width-, block- or ND-sharded tensor holds only one shard's part of a row.
+        const auto output_spec = compute_output_specs(operation_attributes, tensor_args);
+        const auto& output_mem_config = output_spec.memory_config();
+        if (output_spec.layout() == Layout::ROW_MAJOR && output_mem_config.is_sharded() &&
+            output_mem_config.memory_layout() != TensorMemoryLayout::HEIGHT_SHARDED &&
+            (output_mem_config.shard_spec().has_value() || output_mem_config.nd_shard_spec().has_value())) {
+            const auto row_width = output_spec.padded_shape()[-1];
+            const auto shard_width = output_mem_config.shard_spec().has_value()
+                                         ? output_mem_config.shard_spec()->shape[1]
+                                         : output_mem_config.nd_shard_spec()->shard_shape[-1];
+            TT_FATAL(
+                shard_width == row_width,
+                "Embedding with TILE indices writes whole output rows of {} elements, but the {} ROW_MAJOR output "
+                "has shards {} elements wide; use a HEIGHT_SHARDED or interleaved output",
+                row_width,
+                output_mem_config.memory_layout(),
+                shard_width);
+        }
+    }
 }
 
 tt::tt_metal::TensorSpec EmbeddingsDeviceOperation::compute_output_specs(
