@@ -12,6 +12,14 @@ from tests.ttnn.utils_for_testing import assert_numeric_metrics
 TEST_PADDING_VALUE = -42
 
 
+@pytest.mark.parametrize("output_shape", [(1, 1, 64, 32), (1, 1, 31, 64), (1, 32, 64)])
+def test_ema_preallocated_output_shape(device, expect_error, output_shape):
+    x = ttnn.from_torch(torch.ones((1, 1, 32, 64), dtype=torch.bfloat16), layout=ttnn.TILE_LAYOUT, device=device)
+    out = ttnn.from_torch(torch.zeros(output_shape, dtype=torch.bfloat16), layout=ttnn.TILE_LAYOUT, device=device)
+    with expect_error(RuntimeError, "EMA output shape must match input shape: expected"):
+        ttnn.ema(x, 0.0, out=out)
+
+
 @pytest.mark.parametrize(
     "T, B, C, cores_y, cores_x",
     [(2048, 2, 4096, 0, 0), (2048, 2, 4096, 4, 4), (10, 3, 18, 0, 0)],  # base case  # custom grid  # implicit padding

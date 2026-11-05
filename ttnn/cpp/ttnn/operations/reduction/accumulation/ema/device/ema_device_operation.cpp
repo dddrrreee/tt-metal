@@ -32,8 +32,6 @@ void EmaDeviceOperation::validate_on_program_cache_miss(
     TT_FATAL(input_shape.rank() == 4, "EMA input must be 4D [1, B, C, T], got rank {}", input_shape.rank());
     TT_FATAL(input_shape[0] == 1, "EMA expects leading dimension to be 1, got {}", input_shape[0]);
 
-    // This OP produces as many elements in output as there are in input
-    // Thus, the volume must be the same to avoid writing outside the output buffer
     if (tensor_args.optional_output_tensor.has_value()) {
         const auto& output_tensor = tensor_args.optional_output_tensor.value();
         TT_FATAL(
@@ -49,6 +47,11 @@ void EmaDeviceOperation::validate_on_program_cache_miss(
             output_tensor.layout() == Layout::TILE,
             "Output tensor must have TILE layout, got: {}",
             output_tensor.layout());
+        TT_FATAL(
+            input_shape == output_tensor.logical_shape(),
+            "EMA output shape must match input shape: expected {}, got {}",
+            input_shape,
+            output_tensor.logical_shape());
         TT_FATAL(
             input_tensor.padded_shape().volume() == output_tensor.padded_shape().volume(),
             "Input and output must have the same volume, input: {}, output: {}",
