@@ -579,3 +579,130 @@ def test_index_fill_program_cache_hit_new_addresses(device, in_layout, out_layou
     assert device.num_program_cache_entries() == num_entries
     for a, b in zip(first, second):
         assert a.buffer_address() != b.buffer_address()
+
+
+def _row_sharded_cfg(layout, shard_shape, end_core, orientation=ttnn.ShardOrientation.ROW_MAJOR) -> ttnn.MemoryConfig:
+    """`layout` L1 config over cores (0, 0)-`end_core` with an explicit shard shape."""
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(*end_core))})
+    return ttnn.MemoryConfig(layout, ttnn.BufferType.L1, ttnn.ShardSpec(grid, shard_shape, orientation))
+
+
+@pytest.mark.parametrize(
+    "shape, dim, torch_dtype, ttnn_dtype, in_cfg, out_cfg",
+    [
+        # DRAM pages are padded to 64 bytes, L1 rows to 16: a 130-byte row is 192 bytes in, 144 out.
+        (
+            (1, 1, 32, 65),
+            3,
+            torch.bfloat16,
+            ttnn.bfloat16,
+            ttnn.DRAM_MEMORY_CONFIG,
+            _row_sharded_cfg(ttnn.TensorMemoryLayout.HEIGHT_SHARDED, (8, 65), (3, 0)),
+        ),
+        (
+            (1, 1, 32, 33),
+            2,
+            torch.bfloat16,
+            ttnn.bfloat16,
+            ttnn.DRAM_MEMORY_CONFIG,
+            _row_sharded_cfg(ttnn.TensorMemoryLayout.HEIGHT_SHARDED, (8, 33), (3, 0)),
+        ),
+        # More rows than L1 banks, so each bank holds several rows of the output.
+        ((1, 1, 1024, 65), 2, torch.bfloat16, ttnn.bfloat16, ttnn.DRAM_MEMORY_CONFIG, ttnn.L1_MEMORY_CONFIG),
+        # The last width shard holds 64 of its 96 columns.
+        (
+            (1, 1, 64, 352),
+            2,
+            torch.float32,
+            ttnn.float32,
+            _row_sharded_cfg(ttnn.TensorMemoryLayout.WIDTH_SHARDED, (64, 96), (3, 0)),
+            _row_sharded_cfg(ttnn.TensorMemoryLayout.HEIGHT_SHARDED, (16, 352), (3, 0)),
+        ),
+        # Three width shards on four cores: the fourth core holds no shard.
+        (
+            (2, 3, 64, 96),
+            1,
+            torch.bfloat16,
+            ttnn.bfloat16,
+            _row_sharded_cfg(ttnn.TensorMemoryLayout.WIDTH_SHARDED, (384, 32), (3, 0)),
+            ttnn.DRAM_MEMORY_CONFIG,
+        ),
+        # Three by three block shards on a 4x4 COL_MAJOR grid: seven cores hold no shard.
+        (
+            (2, 3, 64, 96),
+            1,
+            torch.bfloat16,
+            ttnn.bfloat16,
+            _row_sharded_cfg(ttnn.TensorMemoryLayout.BLOCK_SHARDED, (128, 32), (3, 3), ttnn.ShardOrientation.COL_MAJOR),
+            ttnn.DRAM_MEMORY_CONFIG,
+        ),
+    ],
+    ids=[
+        "dram_to_height_w65",
+        "dram_to_height_w33",
+        "dram_to_l1_w65",
+        "width_partial_to_height",
+        "width_spare_core",
+        "block_col_major_spare_cores",
+    ],
+)
+def test_index_fill_output_rows_narrower_than_input_pages(device, shape, dim, torch_dtype, ttnn_dtype, in_cfg, out_cfg):
+    """Each output row is written with no more than the output's page size, at its column offset."""
+    torch.manual_seed(0)
+    torch_input = torch.rand(shape, dtype=torch_dtype)
+    torch_index = torch.tensor([1], dtype=torch.int32)
+
+    tt_input = ttnn.from_torch(
+        torch_input, dtype=ttnn_dtype, layout=ttnn.ROW_MAJOR_LAYOUT, device=device, memory_config=in_cfg
+    )
+    tt_index = _make_index_tensor(torch_index, device)
+    tt_out = ttnn.index_fill(tt_input, dim, tt_index, 2.5, memory_config=out_cfg)
+
+    assert_equal(ttnn.to_torch(tt_out), torch.index_fill(torch_input, dim, torch_index.long(), 2.5))
+    assert_equal(ttnn.to_torch(tt_input), torch_input)
+
+
+def test_index_fill_col_sharded_padded_shard_rows_raises(device, expect_error):
+    """Column shards are placed at k * page size in each row, so a padded shard row must be rejected."""
+    shape = (1, 1, 16, 108)
+    # 36 bfloat16 values are 72 bytes, which L1 pads to 80.
+    in_cfg = _row_sharded_cfg(ttnn.TensorMemoryLayout.WIDTH_SHARDED, (16, 36), (2, 0))
+    tt_input = ttnn.from_torch(
+        torch.rand(shape, dtype=torch.bfloat16),
+        dtype=ttnn.bfloat16,
+        layout=ttnn.ROW_MAJOR_LAYOUT,
+        device=device,
+        memory_config=in_cfg,
+    )
+    tt_index = _make_index_tensor(torch.tensor([3], dtype=torch.int32), device)
+
+    with expect_error(RuntimeError, "shard rows that are a multiple of"):
+        ttnn.index_fill(tt_input, 2, tt_index, 2.5, memory_config=ttnn.DRAM_MEMORY_CONFIG)
+
+
+@pytest.mark.parametrize(
+    "shape, dim, in_layout, shard_shape, end_core, out_cfg",
+    [
+        # One column shard: no shard offsets, so a padded shard row is exact.
+        ((1, 1, 32, 36), 2, ttnn.TensorMemoryLayout.WIDTH_SHARDED, (32, 36), (0, 0), ttnn.DRAM_MEMORY_CONFIG),
+        # Column-sharded to the same config on a non-last dim copies each page whole.
+        ((1, 1, 16, 108), 2, ttnn.TensorMemoryLayout.WIDTH_SHARDED, (16, 36), (2, 0), None),
+        ((1, 1, 16, 72), 2, ttnn.TensorMemoryLayout.BLOCK_SHARDED, (8, 36), (1, 1), None),
+    ],
+    ids=["width_one_shard_to_dram", "width_to_width_dim2", "block_to_block_dim2"],
+)
+def test_index_fill_col_sharded_padded_shard_rows_supported(
+    device, shape, dim, in_layout, shard_shape, end_core, out_cfg
+):
+    """Padded shard rows are fine when no column shard offset is used (36 bfloat16 values pad 72 bytes to 80)."""
+    torch.manual_seed(0)
+    in_cfg = _row_sharded_cfg(in_layout, shard_shape, end_core)
+    torch_input = torch.rand(shape, dtype=torch.bfloat16)
+    torch_index = torch.tensor([1], dtype=torch.int32)
+    tt_input = ttnn.from_torch(
+        torch_input, dtype=ttnn.bfloat16, layout=ttnn.ROW_MAJOR_LAYOUT, device=device, memory_config=in_cfg
+    )
+    tt_index = _make_index_tensor(torch_index, device)
+    tt_out = ttnn.index_fill(tt_input, dim, tt_index, 2.5, memory_config=out_cfg)
+
+    assert_equal(ttnn.to_torch(tt_out), torch.index_fill(torch_input, dim, torch_index.long(), 2.5))

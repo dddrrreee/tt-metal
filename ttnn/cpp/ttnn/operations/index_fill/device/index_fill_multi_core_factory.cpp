@@ -76,9 +76,10 @@ WorkSplit split_rows_across_cores(const ttnn::Tensor& input, uint32_t num_rows) 
             const auto cores = corerange_to_cores(
                 split.all_cores, std::nullopt, shard_spec.orientation == ShardOrientation::ROW_MAJOR);
 
-            const uint32_t KW = cores.size();
-            for (uint32_t k = 0; k < KW; ++k) {
-                split.cores.push_back({cores[k], 0, num_rows, k, KW});
+            // The grid can have more cores than column shards; those cores hold no shard and get no rows.
+            const uint32_t KW = (input.padded_shape()[-1] + shard_spec.shape[1] - 1) / shard_spec.shape[1];
+            for (uint32_t k = 0; k < cores.size(); ++k) {
+                split.cores.push_back({cores[k], 0, k < KW ? num_rows : 0, k, KW});
             }
             break;
         }
@@ -95,8 +96,10 @@ WorkSplit split_rows_across_cores(const ttnn::Tensor& input, uint32_t num_rows) 
             for (uint32_t i = 0; i < cores.size(); ++i) {
                 const uint32_t kh = rm_orientation ? (i / KW) : (i % KH);
                 const uint32_t kw = rm_orientation ? (i % KW) : (i / KH);
-                const uint32_t row_start = kh * shard_h;
-                split.cores.push_back({cores[i], clamp_row(row_start), clamp_row(row_start + shard_h), kw, KW});
+                // Cores past the last shard (a grid larger than KH x KW) hold no shard and get no rows.
+                const uint32_t row_start = kw < KW ? clamp_row(kh * shard_h) : 0;
+                const uint32_t row_end = kw < KW ? clamp_row(kh * shard_h + shard_h) : 0;
+                split.cores.push_back({cores[i], row_start, row_end, kw, KW});
             }
             break;
         }
@@ -283,6 +286,13 @@ tt::tt_metal::ProgramDescriptor IndexFillOperation::create_descriptor(
             });
 
         const OutputWriteArgs out = output_write_args(write_mode, work, out_KW, input_page_size);
+        uint32_t write_size = out_write_size;
+        if (write_mode == OutputWriteMode::ToRows) {
+            // The input page can be larger than the output row (DRAM pages are padded to a larger alignment
+            // than L1 rows) or end past it (a partial last column shard): write only what fits in the output row.
+            const uint32_t out_page_size = output.buffer()->aligned_page_size();
+            write_size = std::min(write_size, out_page_size - std::min(out.col_byte_offset, out_page_size));
+        }
         writer_desc.emplace_runtime_args(
             work.core,
             {
@@ -298,7 +308,7 @@ tt::tt_metal::ProgramDescriptor IndexFillOperation::create_descriptor(
                 out.row_page_stride,  // output page stride
                 out.col_byte_offset,  // byte offset within output page
                 out.num_col_shards,   // number of output writes per row
-                out_write_size,       // bytes per output write
+                write_size,           // bytes per output write
             });
     }
 

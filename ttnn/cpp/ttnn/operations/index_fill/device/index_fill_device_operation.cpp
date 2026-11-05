@@ -25,6 +25,25 @@ void IndexFillOperation::validate_on_program_cache_miss(
             input_mem_layout == TensorMemoryLayout::BLOCK_SHARDED,
         "Index fill: Unsupported input memory layout: {}",
         input_mem_layout);
+    // Shard offsets (column shard k at byte k * page size for row outputs, and in a last-dim fill) assume each shard
+    // row fills its page; only multi-shard inputs into row outputs or with a last-dim fill use them.
+    if (is_col_sharded(input_mem_layout)) {
+        const auto& shard_spec = input.shard_spec().value();
+        const uint32_t shard_row_bytes = shard_spec.shape[1] * input.element_size();
+        const uint32_t num_col_shards = (input.padded_shape()[-1] + shard_spec.shape[1] - 1) / shard_spec.shape[1];
+        const bool to_rows = !is_col_sharded(operation_attributes.memory_config.memory_layout());
+        const bool uses_shard_offsets = to_rows || dim == input.padded_shape().rank() - 1;
+        TT_FATAL(
+            num_col_shards == 1 || !uses_shard_offsets || shard_row_bytes % input.buffer()->alignment() == 0,
+            "Index fill: A width- or block-sharded input with {} column shards needs shard rows that are a multiple of "
+            "{} bytes for an interleaved or height-sharded output or a fill along the last dim; got {} values of {} "
+            "bytes ({} bytes)",
+            num_col_shards,
+            input.buffer()->alignment(),
+            shard_spec.shape[1],
+            input.element_size(),
+            shard_row_bytes);
+    }
 
     auto out_mem_layout = operation_attributes.memory_config.memory_layout();
     TT_FATAL(
