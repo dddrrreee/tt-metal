@@ -58,6 +58,17 @@ ttnn::device_operation::ProgramArtifacts UntilizeMultiCoreNDShardInputProgramFac
     uint32_t tensor_width = a.padded_shape()[-1];
     uint32_t output_tensor_width = output.padded_shape()[-1];
     uint32_t output_tensor_height = output.physical_volume() / output_tensor_width;
+    // The input pads every plane (the dims before the last two) to whole tiles. A row-major output with a 2D shard
+    // spec keeps only each plane's logical rows, so the writer maps padded input rows to output rows per plane.
+    const uint32_t input_tensor_height = a.physical_volume() / tensor_width;
+    const uint32_t input_rows_per_plane = a.padded_shape().rank() >= 2 ? a.padded_shape()[-2] : input_tensor_height;
+    const uint32_t num_planes = input_tensor_height / input_rows_per_plane;
+    TT_FATAL(
+        output_tensor_height % num_planes == 0,
+        "Output height {} is not a whole number of rows for each of the input's {} planes",
+        output_tensor_height,
+        num_planes);
+    const uint32_t output_rows_per_plane = output_tensor_height / num_planes;
     const auto& tile_shape = a.tensor_spec().tile().get_tile_shape();
     uint32_t tile_height = tile_shape[0];
     uint32_t tile_width = tile_shape[1];
@@ -71,7 +82,12 @@ ttnn::device_operation::ProgramArtifacts UntilizeMultiCoreNDShardInputProgramFac
     const auto distribution_spec = a.buffer()->buffer_distribution_spec().value();
 
     uint32_t num_shards = distribution_spec.num_shards();
-    const auto page_mapping = distribution_spec.compute_page_mapping();
+    // Reader and writer partition shard IDs cyclically regardless of their physical placement.
+    // Count pages in the same cyclic shard partition used by those kernels.
+    const auto page_mapping = BufferDistributionSpec(
+        distribution_spec.tensor_shape_in_pages(),
+        distribution_spec.shard_shape_in_pages(),
+        distribution_spec.cores()).compute_page_mapping();
     const auto& groups = distribution_spec.core_groups();
     const auto& ordered_cores_with_data = get_optimal_worker_cores_for_sharded_tensor(a);
     uint32_t num_compute_cores = ordered_cores_with_data.size();
@@ -161,7 +177,8 @@ ttnn::device_operation::ProgramArtifacts UntilizeMultiCoreNDShardInputProgramFac
              {"num_tiles_per_row", num_tiles_per_input_row},
              {"tile_width", tile_width},
              {"output_tensor_width", output_tensor_width},
-             {"output_tensor_height", output_tensor_height}},
+             {"input_rows_per_plane", input_rows_per_plane},
+             {"output_rows_per_plane", output_rows_per_plane}},
         .runtime_arg_schema = {.runtime_arg_names = {"start_shard_id"}},
         .hw_config = ttnn::create_writer_datamovement_config(),
     };
@@ -200,26 +217,22 @@ ttnn::device_operation::ProgramArtifacts UntilizeMultiCoreNDShardInputProgramFac
     KernelRunArgs writer_run{.kernel = WRITER};
     KernelRunArgs compute_run{.kernel = COMPUTE};
 
-    const auto& mapped_cores = page_mapping.all_cores;
     uint32_t start_shard_id = 0;
     for (const auto& core : ordered_cores_with_data) {
-        auto core_it = std::find(mapped_cores.begin(), mapped_cores.end(), core);
         uint32_t num_input_blocks_to_process = 0;
 
-        if (core_it != mapped_cores.end()) {
-            const size_t core_idx = std::distance(mapped_cores.begin(), core_it);
-            const auto& host_page_indices = page_mapping.core_host_page_indices[core_idx];
+        // The synthetic round-robin mapping assigns exactly the shards visited by this worker.
+        const auto& host_page_indices = page_mapping.core_host_page_indices[start_shard_id];
 
-            uint32_t page_offset = 0;
-            const uint32_t total_pages = host_page_indices.size();
-            while (page_offset < total_pages) {
-                if (host_page_indices[page_offset] != UncompressedBufferPageMapping::PADDING) {
-                    num_input_blocks_to_process++;
-                } else if (page_offset == 0) {
-                    break;
-                }
-                page_offset += num_tiles_per_input_block;
+        uint32_t page_offset = 0;
+        const uint32_t total_pages = host_page_indices.size();
+        while (page_offset < total_pages) {
+            if (host_page_indices[page_offset] != UncompressedBufferPageMapping::PADDING) {
+                num_input_blocks_to_process++;
+            } else if (page_offset == 0) {
+                break;
             }
+            page_offset += num_tiles_per_input_block;
         }
 
         AddRuntimeArgsForNode(reader_run.runtime_arg_values, core, {{"start_shard_id", start_shard_id}});

@@ -3487,3 +3487,101 @@ def test_untilize_dtype_uint8(device, tensor_shape):
     t = ttnn.from_torch(x, dtype=ttnn.uint8, layout=ttnn.TILE_LAYOUT, device=device)
     got = ttnn.to_torch(ttnn.untilize(t))
     assert torch.equal(got, x)
+
+
+@pytest.mark.parametrize("sharded_output", [False, True])
+@pytest.mark.parametrize(
+    "shape, shard_shape, last_core", [([32, 64], [32, 32], 0), ([1, 1, 64, 64], [1, 1, 32, 32], 3)]
+)
+def test_untilize_nd_sharded_dram_input(device, sharded_output, shape, shard_shape, last_core):
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(last_core, 0))})
+    shard = ttnn.NdShardSpec(
+        ttnn.Shape(shard_shape),
+        grid,
+        ttnn.ShardOrientation.ROW_MAJOR,
+        ttnn.ShardDistributionStrategy.ROUND_ROBIN_1D,
+    )
+    memory = ttnn.MemoryConfig(ttnn.BufferType.DRAM, shard)
+    x = torch.arange(math.prod(shape), dtype=torch.int32).reshape(shape).to(torch.bfloat16)
+    tensor = ttnn.from_torch(x, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device, memory_config=memory)
+    output_memory = memory if sharded_output else ttnn.DRAM_MEMORY_CONFIG
+    output = ttnn.untilize(tensor, memory_config=output_memory, use_multicore=True)
+    assert torch.equal(ttnn.to_torch(output), x)
+
+
+@pytest.mark.parametrize(
+    "height, memory_layout, last_core, output_shard_shape",
+    [
+        (127, ttnn.TensorMemoryLayout.HEIGHT_SHARDED, (0, 3), (127, 128)),
+        (127, ttnn.TensorMemoryLayout.HEIGHT_SHARDED, (0, 3), (128, 128)),
+        (129, ttnn.TensorMemoryLayout.HEIGHT_SHARDED, (0, 3), (129, 128)),
+        (129, ttnn.TensorMemoryLayout.HEIGHT_SHARDED, (0, 3), (160, 128)),
+        (129, ttnn.TensorMemoryLayout.WIDTH_SHARDED, (0, 3), (516, 32)),
+        (129, ttnn.TensorMemoryLayout.BLOCK_SHARDED, (1, 1), (258, 64)),
+    ],
+)
+def test_untilize_nd_sharded_padded_rows_into_2d_sharded_output(
+    device, height, memory_layout, last_core, output_shard_shape
+):
+    # Each [height, 128] plane of the TILE input is padded to whole tiles; the 2D-sharded row-major output keeps
+    # only its logical rows.
+    b, r, c = torch.meshgrid(torch.arange(4), torch.arange(height), torch.arange(128), indexing="ij")
+    x = ((b * 137 + r * 7 + c) % 251 + 1).to(torch.bfloat16)
+    input_grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(0, 3))})
+    nd_shard = ttnn.NdShardSpec(ttnn.Shape([3, 96, 96]), input_grid, ttnn.ShardOrientation.ROW_MAJOR)
+    spec = ttnn.TensorSpec(
+        shape=[4, height, 128],
+        dtype=ttnn.bfloat16,
+        layout=ttnn.TILE_LAYOUT,
+        nd_shard_spec=nd_shard,
+        buffer_type=ttnn.BufferType.L1,
+    )
+    tensor = ttnn.from_torch(x, spec=spec, device=device)
+    output_grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(*last_core))})
+    output_memory = ttnn.MemoryConfig(
+        memory_layout,
+        ttnn.BufferType.L1,
+        ttnn.ShardSpec(output_grid, output_shard_shape, ttnn.ShardOrientation.ROW_MAJOR),
+    )
+    output = ttnn.untilize(tensor, memory_config=output_memory, use_multicore=True)
+    assert torch.equal(ttnn.to_torch(output), x)
+
+
+def test_untilize_nd_sharded_dram_contiguous(device):
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(1, 0))})
+    shard = ttnn.NdShardSpec(
+        ttnn.Shape([64, 32]), grid, ttnn.ShardOrientation.ROW_MAJOR, ttnn.ShardDistributionStrategy.CONTIGUOUS_1D
+    )
+    x = (torch.arange(96 * 64).reshape(96, 64) % 251).to(torch.bfloat16)
+    tensor = ttnn.from_torch(
+        x,
+        dtype=ttnn.bfloat16,
+        layout=ttnn.TILE_LAYOUT,
+        device=device,
+        memory_config=ttnn.MemoryConfig(ttnn.BufferType.DRAM, shard),
+    )
+    output = ttnn.untilize(tensor, memory_config=ttnn.DRAM_MEMORY_CONFIG, use_multicore=True)
+    assert torch.equal(ttnn.to_torch(output), x)
+
+
+def test_untilize_nd_sharded_whole_padding_rows(device):
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(0, 1))})
+    shard = ttnn.NdShardSpec(ttnn.Shape([1, 64, 32]), grid, ttnn.ShardOrientation.ROW_MAJOR)
+    padded = (torch.arange(2 * 128 * 64).reshape(2, 128, 64) % 251).to(torch.bfloat16)
+    tensor = ttnn.from_torch(
+        padded,
+        dtype=ttnn.bfloat16,
+        layout=ttnn.TILE_LAYOUT,
+        device=device,
+        memory_config=ttnn.MemoryConfig(ttnn.BufferType.L1, shard),
+    )
+    view = ttnn.reshape(tensor, [2, 64, 64], [2, 128, 64])
+    assert list(view.padded_shape) == [2, 128, 64]
+    assert view.memory_config().memory_layout == ttnn.TensorMemoryLayout.ND_SHARDED
+    output_memory = ttnn.MemoryConfig(
+        ttnn.TensorMemoryLayout.HEIGHT_SHARDED,
+        ttnn.BufferType.L1,
+        ttnn.ShardSpec(grid, (64, 64), ttnn.ShardOrientation.ROW_MAJOR),
+    )
+    output = ttnn.untilize(view, memory_config=output_memory, use_multicore=True)
+    assert torch.equal(ttnn.to_torch(output), padded[:, :64, :])
