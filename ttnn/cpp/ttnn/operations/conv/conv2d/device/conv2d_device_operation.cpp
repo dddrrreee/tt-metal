@@ -98,6 +98,25 @@ void Conv2dDeviceOperation::validate_on_program_cache_miss(
     const auto& input_tensor_b = tensor_args.b;
     TT_FATAL(input_tensor_a.memory_config().is_sharded(), "Activation tensor should be sharded.");
     TT_FATAL(!input_tensor_b.memory_config().is_sharded(), "Weights tensor should not be sharded.");
+    if (input_tensor_a.memory_config().memory_layout() == TensorMemoryLayout::WIDTH_SHARDED) {
+        // The width-sharded factory gives shard i to core (i % device width, i / device width). Unpadded row-major
+        // input skips halo, and halo's check uses the grid's own width, so check the factory's walk here.
+        const auto& shard_spec = input_tensor_a.shard_spec().value();
+        const uint32_t device_width = input_tensor_a.device()->compute_with_storage_grid_size().x;
+        const auto cores =
+            corerange_to_cores(shard_spec.grid, std::nullopt, shard_spec.orientation == ShardOrientation::ROW_MAJOR);
+        for (uint32_t i = 0; i < cores.size(); ++i) {
+            const CoreCoord walked(i % device_width, i / device_width);
+            TT_FATAL(
+                cores[i] == walked,
+                "The width-sharded conv2d factory walks cores row by row across the device grid from (0, 0); shard {} "
+                "of grid {} is on core {}, not {}",
+                i,
+                shard_spec.grid,
+                cores[i].str(),
+                walked.str());
+        }
+    }
     if (args.untilize_out) {
         TT_FATAL(
             (args.dtype == DataType::BFLOAT16) || (args.dtype == DataType::FLOAT32),
