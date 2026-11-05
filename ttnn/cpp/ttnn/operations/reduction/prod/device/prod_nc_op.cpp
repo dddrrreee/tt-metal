@@ -40,7 +40,7 @@ ttnn::Tensor prod_(const ttnn::Tensor& input, const ttnn::Tensor& output, const 
 
 // output creation inside
 ttnn::Tensor prod_(const ttnn::Tensor& input, const int64_t& dim, const MemoryConfig& mem_config) {
-    const auto& input_shape = input.padded_shape();
+    const auto& input_shape = input.logical_shape();
     auto output_shape = compute_output_shape(input_shape, dim);
     auto output = create_output_tensor(input, output_shape, mem_config);
 

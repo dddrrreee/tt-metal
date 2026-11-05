@@ -215,9 +215,48 @@ Tensor prod_nc_impl(
     ttsl::SmallVector<int64_t>& dims,
     const std::optional<MemoryConfig>& memory_config) {
     auto mem_cfg = memory_config.value_or(input.memory_config());
-    const Tensor input_padded = input.layout() == Layout::TILE ? ttnn::fill_implicit_tile_padding(input, 1.0f) : input;
+    const Tensor input_padded = (input.layout() == Layout::TILE && input.logical_volume() > 0)
+                                    ? ttnn::fill_implicit_tile_padding(input, 1.0f)
+                                    : input;
 
     if (dims.empty()) {
+        if (input_padded.logical_volume() == 0) {
+            TT_FATAL(
+                input.storage_type() == ttnn::StorageType::DEVICE && output.storage_type() == ttnn::StorageType::DEVICE,
+                "Operands to prod_nc need to be on device, got input: {} and output: {}",
+                input.storage_type(),
+                output.storage_type());
+            TT_FATAL(
+                input.is_allocated() && output.is_allocated(),
+                "Operands to prod_nc need to be allocated in buffers on device");
+            TT_FATAL(input.device() == output.device(), "Operands to prod_nc need to be on the same device");
+            TT_FATAL(input.layout() == Layout::TILE, "Input layout must be TILE for prod_nc, got {}", input.layout());
+            TT_FATAL(
+                output.layout() == Layout::TILE, "Output layout must be TILE for prod_nc, got {}", output.layout());
+            TT_FATAL(
+                output.logical_shape().rank() == 0,
+                "Full product output must be a scalar, got {}",
+                output.logical_shape());
+            TT_FATAL(
+                input.dtype() == DataType::BFLOAT16 || input.dtype() == DataType::FLOAT32 ||
+                    input.dtype() == DataType::BFLOAT8_B || input.dtype() == DataType::BFLOAT4_B,
+                "Error - unsupported data type for prod, expected BFLOAT16, FLOAT32, BFLOAT8_B or BFLOAT4_B but got "
+                "{}.",
+                input.dtype());
+            TT_FATAL(
+                input.dtype() == output.dtype(),
+                "Error - prod requires input and output dtypes to match, got input: {} vs output: {}.",
+                input.dtype(),
+                output.dtype());
+            return ttnn::full(
+                output.logical_shape(),
+                1.0f,
+                output.dtype(),
+                output.layout(),
+                *output.device(),
+                output.memory_config(),
+                output);
+        }
         return compute_prod_all(input_padded, mem_cfg);
     }
     return tt::operations::primary::prod_nc(input_padded, output, dims, mem_cfg);

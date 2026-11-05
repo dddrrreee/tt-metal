@@ -3,26 +3,47 @@
 
 #include "prod_nc_device_operation.hpp"
 #include "ttnn/device_operation.hpp"
+#include "ttnn/operations/eltwise/unary/unary.hpp"
 #include "ttnn/operations/reduction/reduce_op_validation.hpp"
 
 namespace ttnn::prim {
 void ProdNcDeviceOperation::validate_on_program_cache_miss(
     const operation_attributes_t& args, const tensor_args_t& tensor_args) {
-    TT_FATAL((args.dim >= 0 && args.dim <= 3), "dim should be 0 - 3");
+    TT_FATAL(args.dim == 0 || args.dim == 1, "Dimension ({}) must be either 0 or 1", args.dim);
     const auto& input = tensor_args.input;
     const auto& output = tensor_args.output;
+
+    TT_FATAL(
+        input.storage_type() == ttnn::StorageType::DEVICE && output.storage_type() == ttnn::StorageType::DEVICE,
+        "Operands to prod_nc need to be on device, got input: {} and output: {}",
+        input.storage_type(),
+        output.storage_type());
+    TT_FATAL(
+        input.is_allocated() && output.is_allocated(), "Operands to prod_nc need to be allocated in buffers on device");
+    TT_FATAL(input.device() == output.device(), "Operands to prod_nc need to be on the same device");
+    TT_FATAL(
+        input.layout() == tt::tt_metal::Layout::TILE, "Input layout must be TILE for prod_nc, got {}", input.layout());
+    TT_FATAL(
+        output.layout() == tt::tt_metal::Layout::TILE,
+        "Output layout must be TILE for prod_nc, got {}",
+        output.layout());
 
     auto input_shape = input.padded_shape();
     TT_FATAL((input_shape.rank() == 4), "rank should be 4, got rank: {}", input_shape.rank());
     const auto& output_shape = output.padded_shape();
+    TT_FATAL((output_shape.rank() == 4), "output rank should be 4, got rank: {}", output_shape.rank());
     auto input_shape_wo_padding = input.logical_shape();
 
-    if (args.dim == 0 || args.dim == 1) {
-        input_shape[args.dim] = 1;
-        input_shape_wo_padding[args.dim] = 1;
-    }
+    input_shape[args.dim] = 1;
+    input_shape_wo_padding[args.dim] = 1;
 
     for (int i = 0; i < input_shape.rank(); ++i) {
+        TT_FATAL(
+            input_shape_wo_padding[i] == output.logical_shape()[i],
+            "Input and output logical shapes must match at dimension {}, got input: {} vs output: {}",
+            i,
+            input_shape_wo_padding[i],
+            output.logical_shape()[i]);
         TT_FATAL(
             input_shape[i] == output_shape[i],
             "Input and output shapes must match at dimension {}, got input: {} vs output: {}",
@@ -65,9 +86,16 @@ ProdNcDeviceOperation::tensor_return_value_t ProdNcDeviceOperation::create_outpu
 
 ttnn::Tensor prod_nc(const ttnn::Tensor& input, const ttnn::Tensor& output, int64_t dim) {
     using OperationType = ProdNcDeviceOperation;
-    return ttnn::device_operation::launch<OperationType>(
-        OperationType::operation_attributes_t{.dim = dim},
-        OperationType::tensor_args_t{.input = input, .output = output});
+    const auto operation_attributes = OperationType::operation_attributes_t{.dim = dim};
+    const auto tensor_args = OperationType::tensor_args_t{.input = input, .output = output};
+    if (input.logical_volume() == 0) {
+        OperationType::validate_on_program_cache_miss(operation_attributes, tensor_args);
+        if (output.logical_volume() > 0) {
+            return ttnn::fill(output, 1.0f, output.memory_config(), output);
+        }
+        return output;
+    }
+    return ttnn::device_operation::launch<OperationType>(operation_attributes, tensor_args);
 }
 
 }  // namespace ttnn::prim
