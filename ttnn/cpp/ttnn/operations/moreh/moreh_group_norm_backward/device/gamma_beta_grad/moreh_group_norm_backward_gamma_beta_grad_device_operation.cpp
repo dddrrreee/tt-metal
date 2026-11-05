@@ -49,13 +49,24 @@ void MorehGroupNormBackwardGammaBetaGradOperation::validate_tensors(
     // input (N, C, H, W)
     C = input.padded_shape()[1];
     TT_FATAL(C % num_groups == 0, "input_shape[1] must be divisible by num_groups.");
+    const auto expected_grad_shape = tt::tt_metal::Shape({1, 1, 1, output_grad.logical_shape()[1]});
     // gamma_grad (1, 1, 1, C)
     if (gamma_grad.has_value()) {
+        TT_FATAL(
+            gamma_grad->logical_shape() == expected_grad_shape,
+            "gamma_grad shape must be {}. Got {}.",
+            expected_grad_shape,
+            gamma_grad->logical_shape());
         C = gamma_grad.value().logical_shape()[-1];
         TT_FATAL(C % num_groups == 0, "gamma_grad_shape[-1] must be divisible by num_groups.");
     }
     // beta_grad (1, 1, 1, C)
     if (beta_grad.has_value()) {
+        TT_FATAL(
+            beta_grad->logical_shape() == expected_grad_shape,
+            "beta_grad shape must be {}. Got {}.",
+            expected_grad_shape,
+            beta_grad->logical_shape());
         C = beta_grad.value().logical_shape()[-1];
         TT_FATAL(C % num_groups == 0, "beta_grad_shape[-1] must be divisible by num_groups.");
     }

@@ -48,6 +48,11 @@ void MorehGroupNormBackwardInputGradOperation::validate_tensors(
     TT_FATAL(C % num_groups == 0, "input_shape[1] must be divisible by num_groups.");
     // input_grad (N, C, H, W)
     if (input_grad.has_value()) {
+        TT_FATAL(
+            input_grad->logical_shape() == output_grad.logical_shape(),
+            "input_grad shape must match output_grad shape. Got {} and {}.",
+            input_grad->logical_shape(),
+            output_grad.logical_shape());
         C = input_grad.value().padded_shape()[1];
         TT_FATAL(C % num_groups == 0, "input_grad_shape[1] must be divisible by num_groups.");
     }

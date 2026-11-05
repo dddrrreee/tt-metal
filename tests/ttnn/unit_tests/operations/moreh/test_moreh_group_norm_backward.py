@@ -100,3 +100,21 @@ def test_moreh_group_norm_backward_unaligned(N, C, num_groups, H, W, device):
 def test_moreh_group_norm_backward_large_algorithm(device):
     torch.manual_seed(0)
     run_test_moreh_group_norm_backward(2, [4, 1], [512, 512], 1e-5, True, True, False, False, device)
+
+
+@pytest.mark.parametrize("output_name", ["input_grad", "gamma_grad", "beta_grad"])
+@pytest.mark.parametrize("larger", [True, False], ids=["oversized", "undersized"])
+def test_moreh_group_norm_backward_rejects_wrong_output_shape(device, expect_error, output_name, larger):
+    def tensor(shape):
+        return ttnn.from_torch(torch.ones(shape, dtype=torch.bfloat16), layout=ttnn.TILE_LAYOUT, device=device)
+
+    x = tensor((1, 4, 32, 32))
+    mean = tensor((1, 1, 1, 2))
+    output_shape = (2 if larger else 1, 4, 32, 32) if output_name == "input_grad" else (1, 1, 1, 6 if larger else 2)
+    if output_name == "input_grad" and not larger:
+        output_shape = (1, 4, 31, 32)
+    required = [output_name == name for name in ("input_grad", "gamma_grad", "beta_grad")]
+    with expect_error(RuntimeError, f"{output_name} shape"):
+        ttnn.moreh_group_norm_backward(
+            x, x, mean, mean, 2, are_required_outputs=required, **{output_name: tensor(output_shape)}
+        )
