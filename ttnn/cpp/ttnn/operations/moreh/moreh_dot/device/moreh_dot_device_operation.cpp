@@ -15,6 +15,9 @@ void MorehDotOperation::validate(const operation_attributes_t& operation_attribu
     const auto& input_a = tensor_args.input_a;
     const auto& input_b = tensor_args.input_b;
 
+    TT_FATAL(input_a.layout() == Layout::TILE, "input_a must have TILE layout; ROW_MAJOR is unsupported");
+    TT_FATAL(input_b.layout() == Layout::TILE, "input_b must have TILE layout; ROW_MAJOR is unsupported");
+
     TT_FATAL(is_1d_tensor(input_a), "Invalid input tensor dimensions.");
     TT_FATAL(is_1d_tensor(input_b), "Invalid input tensor dimensions.");
 

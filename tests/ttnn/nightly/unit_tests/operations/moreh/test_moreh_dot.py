@@ -199,3 +199,20 @@ def test_moreh_dot_dtype_conflicts_with_optional_output(device, expect_error):
     )
     with expect_error(RuntimeError, "does not match the output tensor dtype"):
         ttnn.operations.moreh.dot(tt_input, tt_other, dtype=ttnn.bfloat16, output=optional_output)
+
+
+@pytest.mark.parametrize(
+    "layout_a, layout_b, invalid_input",
+    (
+        (ttnn.ROW_MAJOR_LAYOUT, ttnn.ROW_MAJOR_LAYOUT, "input_a"),
+        (ttnn.ROW_MAJOR_LAYOUT, ttnn.TILE_LAYOUT, "input_a"),
+        (ttnn.TILE_LAYOUT, ttnn.ROW_MAJOR_LAYOUT, "input_b"),
+    ),
+    ids=("both-row-major", "a-row-major", "b-row-major"),
+)
+def test_moreh_dot_rejects_row_major_inputs(layout_a, layout_b, invalid_input, device, expect_error):
+    values = torch.ones([1, 1, 1, 1024], dtype=torch.bfloat16)
+    a = ttnn.from_torch(values, device=device, layout=layout_a)
+    b = ttnn.from_torch(values, device=device, layout=layout_b)
+    with expect_error(RuntimeError, f"{invalid_input} must have TILE layout; ROW_MAJOR is unsupported"):
+        ttnn.moreh_dot(a, b)
