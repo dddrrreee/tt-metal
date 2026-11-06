@@ -6,9 +6,14 @@
 #include "ttnn/tensor/tensor_ops.hpp"
 #include "ttnn/device_operation.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <string_view>
 
 #include <tt-metalium/constants.hpp>
+#include <tt-metalium/core_coord.hpp>
+#include <tt-metalium/math.hpp>
 
 #include "ttnn/operation.hpp"
 #include "ttnn/tensor/tensor_utils.hpp"
@@ -582,6 +587,200 @@ void SdpaDecodeDeviceOperation::validate_on_program_cache_miss(
             attention_sink.memory_config().buffer_type() == tt::tt_metal::BufferType::DRAM,
             "Attention sink must be in DRAM memory, but got {}",
             attention_sink.memory_config().buffer_type());
+    }
+
+    // Sharded Q (unless replicated across all worker cores for MLA) and sharded output are accessed directly
+    // in each batch's reducer/output core L1, so shard b must sit on the core assigned to batch b.
+    const bool is_q_sharded = input_tensors.at(0).is_sharded();
+    const bool is_output_sharded = operation_attributes.output_mem_config.is_sharded();
+    if (is_q_sharded || is_output_sharded) {
+        if (is_q_sharded) {
+            TT_FATAL(Q_memcfg.shard_spec().has_value(), "Sharded Q memory config must provide a shard_spec");
+        }
+        if (is_output_sharded) {
+            TT_FATAL(
+                operation_attributes.output_mem_config.shard_spec().has_value(),
+                "Sharded output memory config must provide a shard_spec");
+        }
+
+        uint32_t B = q_shape[1];
+        if (operation_attributes.paged_attention) {
+            const auto& page_table_tensor = tensor_args.page_table_tensor.value();
+            B = page_table_tensor.is_sharded() ? page_table_tensor.padded_shape()[0] /
+                                                     page_table_tensor.memory_config().shard_spec()->grid.num_cores()
+                                               : page_table_tensor.padded_shape()[0];
+        }
+        TT_FATAL(B > 0, "Batch size must be > 0, got {}", B);
+        const uint32_t batch_count = B;
+
+        const auto& program_config = operation_attributes.program_config;
+        bool q_locally_available = false;
+        uint32_t q_heads_parallel_factor = 1;
+        if (is_q_sharded && use_mla) {
+            const uint32_t q_shard_height = Q_memcfg.shard_spec()->shape[0];
+            TT_FATAL(q_shard_height > 0, "Sharded Q shard height must be > 0");
+            const uint32_t max_cores = program_config.has_value() ? program_config->max_cores_per_head_batch : 16;
+            TT_FATAL(max_cores > 0, "max_cores_per_head_batch must be > 0");
+            const uint32_t num_q_shards = Q_memcfg.shard_spec()->grid.num_cores();
+            const uint32_t num_groups = num_q_shards / max_cores;
+            q_heads_parallel_factor = num_groups / B;
+            const uint32_t padded_q_heads = tt::round_up(q_shape[2], tt::constants::TILE_HEIGHT);
+            q_locally_available = (padded_q_heads == B * q_shard_height * q_heads_parallel_factor * max_cores);
+            if (!q_locally_available) {
+                q_heads_parallel_factor = std::max(1u, (q_shape_unpadded[2] + q_shard_height - 1) / q_shard_height);
+            }
+            B *= q_heads_parallel_factor;
+        }
+
+        if ((is_q_sharded && !q_locally_available) || is_output_sharded) {
+            auto* device = input_tensors.at(0).device();
+            const CoreCoord grid_size = program_config.has_value() ? program_config->compute_with_storage_grid_size
+                                                                   : device->compute_with_storage_grid_size();
+            const uint32_t num_cores_available = grid_size.x * grid_size.y;
+            const uint32_t num_cores_in_grid =
+                device->compute_with_storage_grid_size().x * device->compute_with_storage_grid_size().y;
+            bool on_subcoregrid = false;
+            CoreRangeSet sub_core_grids;
+            if (program_config.has_value() && program_config->sub_core_grids.has_value()) {
+                sub_core_grids = program_config->sub_core_grids.value();
+                TT_FATAL(
+                    sub_core_grids.num_cores() == num_cores_available,
+                    "sub_core_grids cores ({}) must match compute_with_storage_grid_size ({})",
+                    sub_core_grids.num_cores(),
+                    num_cores_available);
+                on_subcoregrid = true;
+            }
+            TT_FATAL(
+                num_cores_available <= num_cores_in_grid,
+                "Cores available ({}) exceeds grid size ({})",
+                num_cores_available,
+                num_cores_in_grid);
+            TT_FATAL(
+                num_cores_available >= B,
+                "Cores available ({}) must be >= batch size ({})",
+                num_cores_available,
+                B);
+
+            const bool apply_geometry_override = !use_mla && operation_attributes.paged_cache_geometry.active();
+            const uint32_t num_kv_heads =
+                apply_geometry_override ? operation_attributes.paged_cache_geometry.num_kv_heads : k_shape[1];
+            TT_FATAL(num_kv_heads > 0, "num_kv_heads must be > 0");
+            const uint32_t max_cores_per_head =
+                program_config.has_value() ? program_config->max_cores_per_head_batch : num_cores_available;
+            TT_FATAL(max_cores_per_head > 0, "max_cores_per_head_batch must be > 0");
+            const uint32_t max_num_cores_for_compute = max_cores_per_head * B * num_kv_heads;
+            const uint32_t num_cores_per_batch_uncapped = std::min(num_cores_available, max_num_cores_for_compute) / B;
+            const uint32_t num_cores_per_head = std::max(1u, num_cores_per_batch_uncapped / num_kv_heads);
+            uint32_t num_heads_per_core = std::max(
+                1u, static_cast<uint32_t>(std::ceil(static_cast<float>(num_kv_heads) / num_cores_per_batch_uncapped)));
+            while (num_kv_heads % num_heads_per_core != 0) {
+                num_heads_per_core++;
+            }
+            const uint32_t num_active_cores = num_cores_per_head * num_kv_heads * B / num_heads_per_core;
+
+            uint32_t col_major_rows = 0;
+            const bool use_col_major_group_indexing = [&]() -> bool {
+                if (q_heads_parallel_factor <= 1 || grid_size.y < num_cores_per_head || on_subcoregrid) {
+                    return false;
+                }
+                if (num_heads_per_core != 1 || grid_size.x % num_cores_per_head != 0 ||
+                    num_active_cores % num_cores_per_head != 0) {
+                    return false;
+                }
+                const uint32_t groups = num_active_cores / num_cores_per_head;
+                const uint32_t groups_per_row = grid_size.x / num_cores_per_head;
+                if (groups_per_row == 0 || groups != B || groups % groups_per_row != 0) {
+                    return false;
+                }
+                const uint32_t rows = groups / groups_per_row;
+                if (rows % q_heads_parallel_factor != 0) {
+                    return false;
+                }
+                if (q_locally_available) {
+                    col_major_rows = rows;
+                    return true;
+                }
+                if (!is_q_sharded) {
+                    return false;
+                }
+                const auto& q_spec = Q_memcfg.shard_spec().value();
+                const auto q_cores =
+                    corerange_to_cores(q_spec.grid, B, q_spec.orientation == ShardOrientation::ROW_MAJOR);
+                if (q_cores.size() != B) {
+                    return false;
+                }
+                for (uint32_t cb = 0; cb < B; ++cb) {
+                    if (q_cores[cb] != CoreCoord{(cb / rows) * num_cores_per_head, cb % rows}) {
+                        return false;
+                    }
+                }
+                col_major_rows = rows;
+                return true;
+            }();
+
+            std::vector<CoreCoord> expected_cores;
+            if (on_subcoregrid) {
+                expected_cores = corerange_to_cores(sub_core_grids, B, true);
+            } else {
+                expected_cores.reserve(B);
+                for (uint32_t b = 0; b < B; ++b) {
+                    expected_cores.push_back(
+                        use_col_major_group_indexing
+                            ? CoreCoord{(b / col_major_rows) * num_cores_per_head, b % col_major_rows}
+                            : CoreCoord{b % grid_size.x, b / grid_size.x});
+                }
+            }
+
+            const auto validate_shard_cores = [&](const ShardSpec& shard_spec, std::string_view tensor_name) {
+                const auto shard_cores = corerange_to_cores(
+                    shard_spec.grid, std::nullopt, shard_spec.orientation == ShardOrientation::ROW_MAJOR);
+                TT_FATAL(
+                    shard_cores.size() >= B,
+                    "Sharded {} has {} shard cores, but batch size {} requires at least {} shard cores",
+                    tensor_name,
+                    shard_cores.size(),
+                    B,
+                    B);
+                for (uint32_t b = 0; b < B; ++b) {
+                    TT_FATAL(
+                        shard_cores[b] == expected_cores[b],
+                        "Sharded {} shard {} is on core {}, but batch {} runs on core {}",
+                        tensor_name,
+                        b,
+                        shard_cores[b],
+                        b,
+                        expected_cores[b]);
+                }
+            };
+            if (is_q_sharded && !q_locally_available) {
+                validate_shard_cores(Q_memcfg.shard_spec().value(), "Q");
+                const uint64_t q_rows_per_batch =
+                    static_cast<uint64_t>(Q_memcfg.shard_spec()->shape[0]) * q_heads_parallel_factor;
+                TT_FATAL(
+                    q_rows_per_batch == q_shape[2] ||
+                        (batch_count == 1 && q_heads_parallel_factor == 1 && q_rows_per_batch > q_shape[2]),
+                    "Sharded Q shard height {} must hold one batch of {} padded heads without sharing a shard",
+                    Q_memcfg.shard_spec()->shape[0],
+                    q_shape[2]);
+            }
+            if (is_output_sharded) {
+                validate_shard_cores(operation_attributes.output_mem_config.shard_spec().value(), "output");
+                if (!q_locally_available) {
+                    const uint64_t output_rows_per_batch = static_cast<uint64_t>(
+                                                               operation_attributes.output_mem_config.shard_spec()
+                                                                   ->shape[0]) *
+                                                           q_heads_parallel_factor;
+                    // The output holds whole tiles of heads even when Q is row-major.
+                    const uint64_t output_heads = tt::round_up(q_shape[2], tt::constants::TILE_HEIGHT);
+                    TT_FATAL(
+                        output_rows_per_batch == output_heads ||
+                            (batch_count == 1 && q_heads_parallel_factor == 1 && output_rows_per_batch > output_heads),
+                        "Sharded output shard height {} must hold one batch of {} padded heads without sharing a shard",
+                        operation_attributes.output_mem_config.shard_spec()->shape[0],
+                        output_heads);
+                }
+            }
+        }
     }
 }
 

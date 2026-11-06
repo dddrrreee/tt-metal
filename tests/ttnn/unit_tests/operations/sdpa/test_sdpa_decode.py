@@ -547,3 +547,303 @@ def test_sdpa_decode_broadcast_mask_batch(device, b, nh, nkv, s, d, dtype, grid_
         grid_size=grid_size,
         mask_dtype=mask_dtype,
     )
+
+
+def _height_sharded_memcfg(first, last, shard_shape, orientation=ttnn.ShardOrientation.ROW_MAJOR):
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(*first), ttnn.CoreCoord(*last))})
+    spec = ttnn.ShardSpec(grid, shard_shape, orientation)
+    return ttnn.MemoryConfig(ttnn.TensorMemoryLayout.HEIGHT_SHARDED, ttnn.BufferType.L1, spec)
+
+
+@pytest.mark.parametrize(
+    "paged, q_shard, out_shard, grid_size, expected_error",
+    [
+        (
+            False,
+            ((0, 1), (3, 1), (32, 128), ttnn.ShardOrientation.ROW_MAJOR),
+            None,
+            (4, 2),
+            "Sharded Q shard 0 is on core .*0.*1.*, but batch 0 runs on core .*0.*0",
+        ),
+        (
+            False,
+            ((0, 0), (3, 0), (32, 128), ttnn.ShardOrientation.ROW_MAJOR),
+            None,
+            (2, 2),
+            "Sharded Q shard 2 is on core .*2.*0.*, but batch 2 runs on core .*0.*1",
+        ),
+        (
+            False,
+            ((0, 0), (1, 1), (32, 128), ttnn.ShardOrientation.COL_MAJOR),
+            None,
+            (2, 2),
+            "Sharded Q shard 1 is on core .*0.*1.*, but batch 1 runs on core .*1.*0",
+        ),
+        (
+            False,
+            ((0, 0), (1, 0), (64, 128), ttnn.ShardOrientation.ROW_MAJOR),
+            None,
+            (4, 2),
+            "Sharded Q has 2 shard cores, but batch size 4 requires at least 4 shard cores",
+        ),
+        (
+            False,
+            None,
+            ((0, 1), (3, 1), (32, 128), ttnn.ShardOrientation.ROW_MAJOR),
+            (4, 2),
+            "Sharded output shard 0 is on core .*0.*1.*, but batch 0 runs on core .*0.*0",
+        ),
+        (
+            True,
+            ((1, 0), (4, 0), (32, 128), ttnn.ShardOrientation.ROW_MAJOR),
+            None,
+            (4, 2),
+            "Sharded Q shard 0 is on core .*1.*0.*, but batch 0 runs on core .*0.*0",
+        ),
+        (
+            False,
+            ((0, 0), (3, 0), (64, 128), ttnn.ShardOrientation.ROW_MAJOR),
+            None,
+            (4, 2),
+            "Sharded Q shard height 64 must hold one batch of 32 padded heads without sharing a shard",
+        ),
+        (
+            True,
+            ((0, 0), (3, 0), (64, 128), ttnn.ShardOrientation.ROW_MAJOR),
+            None,
+            (4, 2),
+            "Sharded Q shard height 64 must hold one batch of 32 padded heads without sharing a shard",
+        ),
+        (
+            False,
+            None,
+            ((0, 0), (3, 0), (64, 128), ttnn.ShardOrientation.ROW_MAJOR),
+            (4, 2),
+            "Sharded output shard height 64 must hold one batch of 32 padded heads without sharing a shard",
+        ),
+    ],
+    ids=[
+        "q_shifted",
+        "q_wrapped",
+        "q_col_major",
+        "q_too_few_cores",
+        "out_shifted",
+        "paged_q_shifted",
+        "q_multi_batch",
+        "paged_q_multi_batch",
+        "out_multi_batch",
+    ],
+)
+def test_sdpa_decode_rejects_misplaced_shards(
+    device, expect_error, paged, q_shard, out_shard, grid_size, expected_error
+):
+    dev_grid = device.compute_with_storage_grid_size()
+    if dev_grid.x < 5 or dev_grid.y < 2:
+        pytest.skip(f"Need at least 5x2 compute grid, got {dev_grid}")
+
+    torch.manual_seed(0)
+    batch, heads, kv_heads, seq_len, head_dim = 4, 8, 1, 128, 128
+    q = torch.randn(1, batch, heads, head_dim, dtype=torch.bfloat16)
+    q_memcfg = _height_sharded_memcfg(*q_shard) if q_shard is not None else ttnn.DRAM_MEMORY_CONFIG
+    out_memcfg = _height_sharded_memcfg(*out_shard) if out_shard is not None else ttnn.DRAM_MEMORY_CONFIG
+    tq = ttnn.from_torch(q, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device, memory_config=q_memcfg)
+    program_config = ttnn.SDPAProgramConfig(
+        compute_with_storage_grid_size=ttnn.CoreCoord(*grid_size),
+        q_chunk_size=32,
+        k_chunk_size=32,
+        exp_approx_mode=False,
+    )
+
+    if paged:
+        block_size = 64
+        num_blocks_per_seq = seq_len // block_size
+        k = torch.randn(batch * num_blocks_per_seq, kv_heads, block_size, head_dim, dtype=torch.bfloat16)
+        v = torch.randn(batch * num_blocks_per_seq, kv_heads, block_size, head_dim, dtype=torch.bfloat16)
+        page_table = torch.arange(batch * num_blocks_per_seq, dtype=torch.int32).reshape(batch, num_blocks_per_seq)
+        cur_pos = torch.tensor([63, 79, 95, 111], dtype=torch.int32)
+        tk = ttnn.from_torch(k, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+        tv = ttnn.from_torch(v, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+        t_pt = ttnn.from_torch(page_table, dtype=ttnn.int32, layout=ttnn.ROW_MAJOR_LAYOUT, device=device)
+        t_pos = ttnn.from_torch(cur_pos, dtype=ttnn.int32, layout=ttnn.ROW_MAJOR_LAYOUT, device=device)
+        with expect_error(RuntimeError, expected_error):
+            ttnn.transformer.paged_scaled_dot_product_attention_decode(
+                tq,
+                tk,
+                tv,
+                t_pt,
+                cur_pos_tensor=t_pos,
+                program_config=program_config,
+                memory_config=out_memcfg,
+            )
+    else:
+        k = torch.randn(batch, kv_heads, seq_len, head_dim, dtype=torch.bfloat16)
+        v = torch.randn(batch, kv_heads, seq_len, head_dim, dtype=torch.bfloat16)
+        tk = ttnn.from_torch(k, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+        tv = ttnn.from_torch(v, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+        with expect_error(RuntimeError, expected_error):
+            ttnn.transformer.scaled_dot_product_attention_decode(
+                tq,
+                tk,
+                tv,
+                cur_pos=[63, 79, 95, 111],
+                program_config=program_config,
+                memory_config=out_memcfg,
+            )
+
+
+@pytest.mark.parametrize("heads, shard_height, end", [(8, 64, (3, 0)), (160, 96, (3, 1))])
+def test_mla_decode_rejects_multi_batch_q_shard(device, expect_error, heads, shard_height, end):
+    q = torch.ones((1, 4, heads, 128), dtype=torch.bfloat16)
+    k = torch.ones((4, 1, 128, 128), dtype=torch.bfloat16)
+    memcfg = _height_sharded_memcfg((0, 0), end, (shard_height, 128))
+    tq = ttnn.from_torch(q, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device, memory_config=memcfg)
+    tk = ttnn.from_torch(k, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    positions = ttnn.from_torch(torch.tensor([63, 79, 95, 111], dtype=torch.int32), device=device, dtype=ttnn.int32)
+    config = ttnn.SDPAProgramConfig(
+        compute_with_storage_grid_size=ttnn.CoreCoord(4, 2), q_chunk_size=32, k_chunk_size=32
+    )
+    with expect_error(RuntimeError, f"Sharded Q shard height {shard_height} must hold one batch"):
+        ttnn.transformer.flash_multi_latent_attention_decode(
+            tq, tk, tk, head_dim_v=128, cur_pos_tensor=positions, program_config=config
+        )
+
+
+def test_mla_decode_rejects_uneven_head_group_shards(device, expect_error):
+    """Two 64-row head groups cannot split 96 heads; heads 32..63 would be skipped."""
+    q = torch.randn((1, 1, 96, 128), dtype=torch.bfloat16)
+    k = torch.randn((1, 1, 128, 128), dtype=torch.bfloat16)
+    memcfg = _height_sharded_memcfg((0, 0), (1, 0), (64, 128))
+    tq = ttnn.from_torch(q, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device, memory_config=memcfg)
+    tk = ttnn.from_torch(k, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    positions = ttnn.from_torch(torch.tensor([63], dtype=torch.int32), device=device, dtype=ttnn.int32)
+    config = ttnn.SDPAProgramConfig(
+        compute_with_storage_grid_size=ttnn.CoreCoord(4, 2), q_chunk_size=32, k_chunk_size=32
+    )
+    with expect_error(RuntimeError, "Sharded Q shard height 64 must hold one batch of 96 padded heads"):
+        ttnn.transformer.flash_multi_latent_attention_decode(
+            tq, tk, tk, head_dim_v=128, cur_pos_tensor=positions, program_config=config
+        )
+
+
+def test_sdpa_decode_accepts_single_batch_oversized_shards(device):
+    q = torch.ones((1, 1, 8, 128), dtype=torch.bfloat16)
+    k = torch.ones((1, 1, 128, 128), dtype=torch.bfloat16)
+    v = torch.ones_like(k)
+    memcfg = _height_sharded_memcfg((0, 0), (0, 0), (64, 128))
+    tq = ttnn.from_torch(q, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device, memory_config=memcfg)
+    tk = ttnn.from_torch(k, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    tv = ttnn.from_torch(v, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    config = ttnn.SDPAProgramConfig(
+        compute_with_storage_grid_size=ttnn.CoreCoord(4, 2), q_chunk_size=32, k_chunk_size=32
+    )
+    out = ttnn.transformer.scaled_dot_product_attention_decode(
+        tq, tk, tv, cur_pos=[63], program_config=config, memory_config=memcfg
+    )
+    torch.testing.assert_close(ttnn.to_torch(out).float(), torch.ones_like(q).float(), rtol=0, atol=0.02)
+
+
+@pytest.mark.parametrize(
+    "q_range, out_range, grid_size, sub_range",
+    [
+        (((0, 0), (3, 0)), ((0, 0), (3, 0)), (4, 2), None),
+        (((0, 0), (1, 1)), ((0, 0), (1, 1)), (2, 2), None),
+        (((0, 0), (5, 0)), None, (4, 2), None),
+        (((0, 1), (3, 1)), ((0, 1), (3, 1)), (4, 2), ((0, 1), (3, 2))),
+    ],
+    ids=["aligned_row", "wrapped_2x2", "spare_shard_cores", "sub_core_grids_offset"],
+)
+def test_sdpa_decode_accepts_placed_shards(device, q_range, out_range, grid_size, sub_range):
+    dev_grid = device.compute_with_storage_grid_size()
+    if dev_grid.x < 6 or dev_grid.y < 3:
+        pytest.skip(f"Need at least 6x3 compute grid, got {dev_grid}")
+
+    torch.manual_seed(0)
+    batch, heads, kv_heads, seq_len, head_dim = 4, 8, 1, 128, 128
+    cur_pos = [63, 79, 95, 111]
+    q = torch.randn(1, batch, heads, head_dim, dtype=torch.bfloat16)
+    k = torch.randn(batch, kv_heads, seq_len, head_dim, dtype=torch.bfloat16)
+    v = torch.randn(batch, kv_heads, seq_len, head_dim, dtype=torch.bfloat16)
+
+    q_memcfg = _height_sharded_memcfg(*q_range, (32, head_dim))
+    out_memcfg = (
+        _height_sharded_memcfg(*out_range, (32, head_dim)) if out_range is not None else ttnn.DRAM_MEMORY_CONFIG
+    )
+    sub_core_grids = (
+        ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(*sub_range[0]), ttnn.CoreCoord(*sub_range[1]))})
+        if sub_range is not None
+        else None
+    )
+    tq = ttnn.from_torch(q, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device, memory_config=q_memcfg)
+    tk = ttnn.from_torch(k, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    tv = ttnn.from_torch(v, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    program_config = ttnn.SDPAProgramConfig(
+        compute_with_storage_grid_size=ttnn.CoreCoord(*grid_size),
+        sub_core_grids=sub_core_grids,
+        q_chunk_size=32,
+        k_chunk_size=32,
+        exp_approx_mode=False,
+    )
+    compute_config = ttnn.WormholeComputeKernelConfig(
+        math_fidelity=ttnn.MathFidelity.HiFi4,
+        math_approx_mode=False,
+        fp32_dest_acc_en=True,
+        packer_l1_acc=False,
+        dst_full_sync_en=False,
+    )
+    out = ttnn.transformer.scaled_dot_product_attention_decode(
+        tq,
+        tk,
+        tv,
+        cur_pos=cur_pos,
+        program_config=program_config,
+        compute_kernel_config=compute_config,
+        memory_config=out_memcfg,
+    )
+    actual = ttnn.to_torch(out)[:, :, :heads].float()
+    expected = torch.empty_like(actual)
+    for b, pos in enumerate(cur_pos):
+        valid_k = k[b : b + 1, :, : pos + 1].repeat_interleave(heads // kv_heads, dim=1).float()
+        valid_v = v[b : b + 1, :, : pos + 1].repeat_interleave(heads // kv_heads, dim=1).float()
+        expected[0, b] = torch.nn.functional.scaled_dot_product_attention(
+            q[:, b, :heads].unsqueeze(2).float(), valid_k, valid_v
+        )[0, :, 0]
+    assert_with_pcc(expected, actual, 0.999)
+    ttnn.deallocate(out)
+
+
+def test_sdpa_decode_row_major_q_sharded_output_multi_batch(device):
+    """Row-major Q in 8-row shards with tile-height output shards, as Galaxy decode uses: batch b lands on core b."""
+    torch.manual_seed(0)
+    batch, heads, seq_len, head_dim = 8, 8, 128, 128
+    cur_pos = [15 + 8 * b for b in range(batch)]
+    q = torch.randn(1, batch, heads, head_dim, dtype=torch.bfloat16)
+    k = torch.randn(batch, 1, seq_len, head_dim, dtype=torch.bfloat16)
+    v = torch.randn(batch, 1, seq_len, head_dim, dtype=torch.bfloat16)
+    q_memcfg = _height_sharded_memcfg((0, 0), (7, 0), (heads, head_dim))
+    out_memcfg = _height_sharded_memcfg((0, 0), (7, 0), (32, head_dim))
+    tq = ttnn.from_torch(q, dtype=ttnn.bfloat16, layout=ttnn.ROW_MAJOR_LAYOUT, device=device, memory_config=q_memcfg)
+    tk = ttnn.from_torch(k, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    tv = ttnn.from_torch(v, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    program_config = ttnn.SDPAProgramConfig(
+        compute_with_storage_grid_size=ttnn.CoreCoord(8, 2), q_chunk_size=32, k_chunk_size=32
+    )
+    out = ttnn.transformer.scaled_dot_product_attention_decode(
+        tq, tk, tv, cur_pos=cur_pos, program_config=program_config, memory_config=out_memcfg
+    )
+    # The kernel writes batch b to the first rows of core b's 32-row shard, which the [1, 8, 8, 128] output does not
+    # map; read every shard through a row-major tensor of 8 full shards allocated at the same address.
+    address = out.buffer_address()
+    ttnn.deallocate(out)
+    shards = ttnn.allocate_tensor_on_device(
+        ttnn.Shape([1, 1, batch * 32, head_dim]), ttnn.bfloat16, ttnn.ROW_MAJOR_LAYOUT, device, out_memcfg
+    )
+    assert shards.buffer_address() == address
+    actual = ttnn.to_torch(shards).float().reshape(1, batch, 32, head_dim)[:, :, :heads]
+    expected = torch.empty_like(actual)
+    for b, pos in enumerate(cur_pos):
+        valid_k = k[b : b + 1, :, : pos + 1].repeat_interleave(heads, dim=1).float()
+        valid_v = v[b : b + 1, :, : pos + 1].repeat_interleave(heads, dim=1).float()
+        expected[0, b] = torch.nn.functional.scaled_dot_product_attention(
+            q[:, b].unsqueeze(2).float(), valid_k, valid_v
+        )[0, :, 0]
+    assert_with_pcc(expected, actual, 0.999)
