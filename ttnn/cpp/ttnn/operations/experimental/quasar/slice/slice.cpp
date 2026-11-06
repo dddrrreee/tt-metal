@@ -14,6 +14,7 @@
 #include "ttnn/operations/experimental/quasar/to_layout/to_layout_op.hpp"
 
 #include <tt-metalium/constants.hpp>
+#include <tt-metalium/hal.hpp>
 
 namespace ttnn::operations::experimental::quasar {
 
@@ -43,18 +44,64 @@ inline bool has_nontile_w(const ttnn::Tensor& input) {
 
 using ttnn::operations::data_movement::has_subaligned_shard_row;
 
+// An ND shard row that is not a multiple of its buffer's alignment, so each of its pages carries padding.
+inline bool has_subaligned_nd_shard_row(const tt::tt_metal::MemoryConfig& mc, uint32_t element_size) {
+    if (mc.memory_layout() != tt::tt_metal::TensorMemoryLayout::ND_SHARDED || !mc.nd_shard_spec().has_value()) {
+        return false;
+    }
+    const uint32_t alignment = (mc.buffer_type() == tt::tt_metal::BufferType::DRAM)
+                                   ? tt::tt_metal::hal::get_dram_alignment()
+                                   : tt::tt_metal::hal::get_l1_alignment();
+    return (mc.nd_shard_spec()->shard_shape[-1] * element_size) % alignment != 0;
+}
+
+// ND shard rows that split the tensor row, where the kernels' page split, which takes a row's pages from the squeezed
+// buffer distribution, disagrees with the row: rank one, or shards one row high whose rows squeeze into the last dim.
+inline bool reads_split_row_as_one_page(const ttnn::Tensor& input) {
+    const auto& mc = input.memory_config();
+    const auto& dspec = input.buffer()->buffer_distribution_spec();
+    if (!mc.created_with_nd_shard_spec() || !mc.nd_shard_spec().has_value() || !dspec.has_value()) {
+        return false;
+    }
+    const uint32_t pages_per_row = tt::div_up(input.padded_shape()[-1], mc.nd_shard_spec()->shard_shape[-1]);
+    const auto& tensor_pages = dspec->tensor_shape_in_pages();
+    const auto& shard_pages = dspec->shard_shape_in_pages();
+    const uint32_t split =
+        (tensor_pages.rank() > 1 && shard_pages[-1] > 0) ? tt::div_up(tensor_pages[-1], shard_pages[-1]) : 1;
+    return pages_per_row > 1 && split != pages_per_row;
+}
+
 // Route RM sharded input through composite when native isn't safe: nontile-aligned B/W, B/W with a
 // sub-aligned shard row or non-zero width-begin, or nontile-aligned HEIGHT outside the sharded fast
 // path.
 inline bool needs_rm_composite_input(
-    const ttnn::Tensor& input, const tt::tt_metal::MemoryConfig& output_mc, bool no_step, bool width_begin_nonzero) {
+    const ttnn::Tensor& input,
+    const tt::tt_metal::MemoryConfig& output_mc,
+    bool no_step,
+    bool width_begin_nonzero,
+    bool empty_slice) {
     if (input.layout() != Layout::ROW_MAJOR || !input.is_sharded()) {
         return false;
+    }
+    // An empty slice returns before the device op, so the ND routes below leave it to that.
+    if (!empty_slice && reads_split_row_as_one_page(input)) {
+        return true;
     }
     if (is_rm_bw_sharded(input.memory_config())) {
         // Only W misalignment breaks the per-shard page split; irregular H is fine.
         return has_nontile_w(input) || width_begin_nonzero ||
                has_subaligned_shard_row(input.memory_config(), input.element_size());
+    }
+    // ND shards that split rows: the RM factory (not the stride one) shifts its reader's base address by the width
+    // begin; both factories' page split keeps a sub-aligned shard row's padding.
+    const auto& nd_spec = input.memory_config().nd_shard_spec();
+    if (!empty_slice && input.memory_config().memory_layout() == tt::tt_metal::TensorMemoryLayout::ND_SHARDED &&
+        nd_spec.has_value()) {
+        const bool splits_rows = nd_spec->shard_shape[-1] < input.padded_shape()[-1];
+        if ((splits_rows && no_step && width_begin_nonzero) ||
+            has_subaligned_nd_shard_row(input.memory_config(), input.element_size())) {
+            return true;
+        }
     }
     // Require a spec: no-spec HEIGHT output triggers needs_sharded_output_reshard → composite anyway.
     const bool stays_on_sharded_fast_path =
@@ -313,8 +360,14 @@ ttnn::Tensor slice(
     // Must stay below the rescale: needs_rm_composite_output and resolve_mc need the rescaled spec,
     // which can be sub-aligned even when the inherited one isn't.
     const bool width_begin_nonzero = !begins.empty() && begins.back() != 0;
+    bool empty_slice = false;
+    for (size_t i = 0; i < input_rank; ++i) {
+        if (modified_ends[i] <= modified_begins[i]) {
+            empty_slice = true;
+        }
+    }
     const bool rm_in_bad =
-        detail::needs_rm_composite_input(input_tensor, output_memory_config, no_step, width_begin_nonzero);
+        detail::needs_rm_composite_input(input_tensor, output_memory_config, no_step, width_begin_nonzero, empty_slice);
     const bool rm_out_bad = detail::needs_rm_composite_output(input_tensor, output_memory_config);
     const bool out_no_spec = detail::needs_sharded_output_reshard(input_tensor, output_memory_config);
     if (rm_in_bad || rm_out_bad || out_no_spec) {
