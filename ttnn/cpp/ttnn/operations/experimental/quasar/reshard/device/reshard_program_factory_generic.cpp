@@ -416,8 +416,12 @@ std::unordered_map<CoreCoord, std::vector<detail::CompressedStrideBlock>> get_co
 
     uint32_t total_page_number =
         (input.logical_shape()[-1] * input.element_size() + base_page_size - 1) / base_page_size;
-    uint32_t num_input_pages_per_row = input_pages_per_original * ((total_width + input_width - 1) / input_width);
-    uint32_t num_output_pages_per_row = output_pages_per_original * ((total_width + output_width - 1) / output_width);
+    // Host pages run in row-major order, so a page ends its row when its shard is the last one across the width,
+    // whichever core holds it (grids may start anywhere and keep spare cores).
+    const uint32_t input_shards_per_row = (total_width + input_width - 1) / input_width;
+    const uint32_t output_shards_per_row = (total_width + output_width - 1) / output_width;
+    uint32_t num_input_pages_per_row = input_pages_per_original * input_shards_per_row;
+    uint32_t num_output_pages_per_row = output_pages_per_original * output_shards_per_row;
 
     std::vector<std::pair<CoreCoord, uint32_t>> host_page_to_input_core_mapping(total_page_number * num_rows);
 
@@ -433,12 +437,7 @@ std::unordered_map<CoreCoord, std::vector<detail::CompressedStrideBlock>> get_co
 
     // find input invalid base pages if applicable
     for (auto mapped_page : input_buffer_page_mapping) {
-        auto core = input_buffer_page_mapping.all_cores[mapped_page.core_id];
-        CoreCoord shard_grid = input_buffer->shard_spec().grid().ranges()[0].grid_size();
-        bool is_last_in_row = (core.x == shard_grid.x - 1);
-        if (input_buffer->shard_spec().orientation() == ShardOrientation::COL_MAJOR) {
-            is_last_in_row = (core.y == shard_grid.y - 1);
-        }
+        const bool is_last_in_row = mapped_page.host_page % input_shards_per_row == input_shards_per_row - 1;
         uint32_t base_start_page = mapped_page.host_page * input_pages_per_original;
         uint32_t valid_pages = input_pages_per_original;
         if (is_last_in_row) {
@@ -455,12 +454,7 @@ std::unordered_map<CoreCoord, std::vector<detail::CompressedStrideBlock>> get_co
 
     // find output invalid base pages if applicable
     for (auto mapped_page : output_buffer_page_mapping) {
-        auto core = output_buffer_page_mapping.all_cores[mapped_page.core_id];
-        CoreCoord shard_grid = output_buffer->shard_spec().grid().ranges()[0].grid_size();
-        bool is_last_in_row = (core.x == shard_grid.x - 1);
-        if (output_buffer->shard_spec().orientation() == ShardOrientation::COL_MAJOR) {
-            is_last_in_row = (core.y == shard_grid.y - 1);
-        }
+        const bool is_last_in_row = mapped_page.host_page % output_shards_per_row == output_shards_per_row - 1;
         uint32_t base_start_page = mapped_page.host_page * output_pages_per_original;
         uint32_t valid_pages = output_pages_per_original;
         if (is_last_in_row) {
