@@ -269,6 +269,165 @@ def test_to_memory_config_width_sharded_unaligned_shard_width_uint16(device):
     assert_equal(input_result, output_result)
 
 
+@pytest.mark.parametrize("layout", [ttnn.TILE_LAYOUT, ttnn.ROW_MAJOR_LAYOUT])
+@pytest.mark.parametrize("output_shape", [[2, 3, 64, 48], [2, 3, 64, 128], [2, 3, 32, 96]])
+def test_to_memory_config_sharded_to_interleaved_output_tensor_shape_mismatch(
+    device, expect_error, layout, output_shape
+):
+    """A preallocated interleaved output must have the sharded input's shape; it used to be written as if it had."""
+    shape = [2, 3, 64, 96]
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(1, 0))})
+    shard_spec = ttnn.ShardSpec(grid, [384, 64], ttnn.ShardOrientation.ROW_MAJOR)
+    sharded = ttnn.MemoryConfig(ttnn.TensorMemoryLayout.WIDTH_SHARDED, ttnn.BufferType.L1, shard_spec)
+    input_tensor = ttnn.from_torch(
+        torch.randint(0, 1000, shape, dtype=torch.int32),
+        dtype=ttnn.uint32,
+        layout=layout,
+        device=device,
+        memory_config=sharded,
+    )
+    output_tensor = ttnn.from_torch(
+        torch.zeros(output_shape, dtype=torch.int32),
+        dtype=ttnn.uint32,
+        layout=layout,
+        device=device,
+        memory_config=ttnn.DRAM_MEMORY_CONFIG,
+    )
+
+    with expect_error(RuntimeError, "does not match output tensor shape"):
+        ttnn.to_memory_config(input_tensor, ttnn.DRAM_MEMORY_CONFIG, output_tensor=output_tensor)
+
+
+@pytest.mark.parametrize("layout", [ttnn.TILE_LAYOUT, ttnn.ROW_MAJOR_LAYOUT])
+def test_to_memory_config_sharded_to_interleaved_output_tensor_taller_padding(device, layout):
+    """An output with extra padding rows below the data keeps every page in place and is written exactly."""
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(1, 0))})
+    shard_spec = ttnn.ShardSpec(grid, [32, 64], ttnn.ShardOrientation.ROW_MAJOR)
+    sharded = ttnn.MemoryConfig(ttnn.TensorMemoryLayout.HEIGHT_SHARDED, ttnn.BufferType.L1, shard_spec)
+    torch_input = torch.randint(1, 1000, [64, 64], dtype=torch.int32)
+    input_tensor = ttnn.from_torch(torch_input, dtype=ttnn.uint32, layout=layout, device=device, memory_config=sharded)
+    output_tensor = ttnn.from_torch(
+        torch.zeros([96, 64], dtype=torch.int32),
+        dtype=ttnn.uint32,
+        layout=layout,
+        device=device,
+        memory_config=ttnn.DRAM_MEMORY_CONFIG,
+    )
+    output_tensor = ttnn.reshape(output_tensor, ttnn.Shape([64, 64]), ttnn.Shape([96, 64]))
+
+    ttnn.to_memory_config(input_tensor, ttnn.DRAM_MEMORY_CONFIG, output_tensor=output_tensor)
+    assert_equal(torch_input, ttnn.to_torch(output_tensor))
+
+
+@pytest.mark.parametrize(
+    "layout, shape, output_padded_shape",
+    [
+        (ttnn.TILE_LAYOUT, [64, 32], [64, 64]),
+        (ttnn.ROW_MAJOR_LAYOUT, [2, 32, 32], [2, 64, 32]),
+    ],
+)
+def test_to_memory_config_sharded_to_interleaved_output_tensor_padding_mismatch(
+    device, expect_error, layout, shape, output_padded_shape
+):
+    """An output whose padding moves the input's pages must be rejected, not written with misplaced pages."""
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(1, 0))})
+    shard_spec = ttnn.ShardSpec(grid, [32, 32], ttnn.ShardOrientation.ROW_MAJOR)
+    sharded = ttnn.MemoryConfig(ttnn.TensorMemoryLayout.HEIGHT_SHARDED, ttnn.BufferType.L1, shard_spec)
+    input_tensor = ttnn.from_torch(
+        torch.randint(1, 1000, shape, dtype=torch.int32),
+        dtype=ttnn.uint32,
+        layout=layout,
+        device=device,
+        memory_config=sharded,
+    )
+    output_tensor = ttnn.from_torch(
+        torch.zeros(output_padded_shape, dtype=torch.int32),
+        dtype=ttnn.uint32,
+        layout=layout,
+        device=device,
+        memory_config=ttnn.DRAM_MEMORY_CONFIG,
+    )
+    output_tensor = ttnn.reshape(output_tensor, ttnn.Shape(shape), ttnn.Shape(output_padded_shape))
+
+    with expect_error(RuntimeError, "lays out pages differently"):
+        ttnn.to_memory_config(input_tensor, ttnn.DRAM_MEMORY_CONFIG, output_tensor=output_tensor)
+
+
+def _sharded_config(buffer_type, num_cores, shard_shape, nd=False):
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(num_cores - 1, 0))})
+    if nd:
+        return ttnn.MemoryConfig(
+            buffer_type, ttnn.NdShardSpec(shard_shape, grid, orientation=ttnn.ShardOrientation.ROW_MAJOR)
+        )
+    shard_spec = ttnn.ShardSpec(grid, shard_shape, ttnn.ShardOrientation.ROW_MAJOR)
+    return ttnn.MemoryConfig(ttnn.TensorMemoryLayout.HEIGHT_SHARDED, buffer_type, shard_spec)
+
+
+# Sharded inputs that sharded_to_interleaved declines, so to_memory_config falls back to ttnn.copy:
+# ND sharding, DRAM shards, an unaligned row-major shard width, and a non-32x32 tile.
+FALLBACK_INPUTS = {
+    "nd": ([4, 96, 96], ttnn.TILE_LAYOUT, ttnn.bfloat16, None, (ttnn.BufferType.L1, 4, [2, 64, 64], True)),
+    "dram": ([64, 32], ttnn.TILE_LAYOUT, ttnn.uint32, None, (ttnn.BufferType.DRAM, 2, [32, 32])),
+    "dram_row_major": ([2, 32, 32], ttnn.ROW_MAJOR_LAYOUT, ttnn.uint32, None, (ttnn.BufferType.DRAM, 2, [32, 32])),
+    "unaligned_row_major": ([2, 32, 4], ttnn.ROW_MAJOR_LAYOUT, ttnn.bfloat16, None, (ttnn.BufferType.L1, 2, [32, 4])),
+    "tile_16x32": ([2, 16, 32], ttnn.TILE_LAYOUT, ttnn.bfloat16, [16, 32], (ttnn.BufferType.L1, 2, [16, 32])),
+}
+
+
+def _fallback_input_and_output(device, kind, output_padded_shape):
+    shape, layout, dtype, tile_shape, config = FALLBACK_INPUTS[kind]
+    tile = ttnn.Tile(tile_shape) if tile_shape else None
+    torch_dtype = torch.int32 if dtype == ttnn.uint32 else torch.bfloat16
+    torch_input = torch.randint(1, 100, shape, dtype=torch.int32).to(torch_dtype)
+    input_tensor = ttnn.from_torch(
+        torch_input, dtype=dtype, layout=layout, tile=tile, device=device, memory_config=_sharded_config(*config)
+    )
+    output_tensor = ttnn.from_torch(
+        torch.zeros(output_padded_shape, dtype=torch_dtype),
+        dtype=dtype,
+        layout=layout,
+        tile=tile,
+        device=device,
+        memory_config=ttnn.DRAM_MEMORY_CONFIG,
+    )
+    if output_padded_shape != shape:
+        output_tensor = ttnn.reshape(output_tensor, ttnn.Shape(shape), ttnn.Shape(output_padded_shape))
+    return torch_input, input_tensor, output_tensor
+
+
+@pytest.mark.parametrize(
+    "kind, output_padded_shape",
+    [
+        ("nd", [4, 96, 128]),
+        ("dram", [64, 64]),
+        ("dram_row_major", [2, 64, 32]),
+        ("unaligned_row_major", [2, 64, 4]),
+        ("tile_16x32", [2, 32, 32]),
+    ],
+)
+def test_to_memory_config_copy_fallback_output_tensor_padding_mismatch(device, expect_error, kind, output_padded_shape):
+    """The ttnn.copy fallback also writes page n to page n, so the same output padding check applies."""
+    _, input_tensor, output_tensor = _fallback_input_and_output(device, kind, output_padded_shape)
+    with expect_error(RuntimeError, "lays out pages differently"):
+        ttnn.to_memory_config(input_tensor, ttnn.DRAM_MEMORY_CONFIG, output_tensor=output_tensor)
+
+
+@pytest.mark.parametrize(
+    "kind, output_padded_shape",
+    [
+        ("nd", [4, 96, 96]),
+        ("dram", [96, 32]),
+        ("dram_row_major", [2, 32, 32]),
+        ("unaligned_row_major", [2, 32, 4]),
+        ("tile_16x32", [2, 16, 32]),
+    ],
+)
+def test_to_memory_config_copy_fallback_output_tensor(device, kind, output_padded_shape):
+    torch_input, input_tensor, output_tensor = _fallback_input_and_output(device, kind, output_padded_shape)
+    ttnn.to_memory_config(input_tensor, ttnn.DRAM_MEMORY_CONFIG, output_tensor=output_tensor)
+    assert_equal(torch_input, ttnn.to_torch(output_tensor))
+
+
 def check_mem_config(tensor, expected_memory_config, is_nd_sharded):
     out_mc = tensor.memory_config()
     assert out_mc.is_sharded(), "Output tensor is not sharded"

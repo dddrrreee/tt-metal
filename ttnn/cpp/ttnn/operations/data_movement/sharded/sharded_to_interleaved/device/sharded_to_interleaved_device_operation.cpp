@@ -5,12 +5,55 @@
 #include "ttnn/operations/data_movement/sharded/sharded_to_interleaved/device/sharded_to_interleaved_device_operation.hpp"
 #include "ttnn/device_operation.hpp"
 #include <tt-metalium/hal.hpp>
+#include <tt-metalium/math.hpp>
 #include "ttnn/operations/data_movement/common/common.hpp"
 #include "ttnn/tensor/tensor_ops.hpp"
+
+#include <algorithm>
+#include <optional>
+#include <vector>
 
 using namespace tt::tt_metal;
 
 namespace ttnn::prim {
+
+namespace {
+
+// A tensor's pages as a grid of `rank` dims, outermost first: tiles for TILE, rows for ROW_MAJOR.
+std::vector<uint64_t> page_grid(const ttnn::Shape& shape, const std::optional<Tile>& tile, size_t rank) {
+    std::vector<uint64_t> grid(rank - shape.rank(), 1);
+    grid.insert(grid.end(), shape.cbegin(), shape.cend());
+    if (tile.has_value()) {
+        grid[rank - 2] = tt::div_up(grid[rank - 2], uint64_t{tile->get_height()});
+        grid[rank - 1] = tt::div_up(grid[rank - 1], uint64_t{tile->get_width()});
+    } else {
+        grid[rank - 1] = 1;
+    }
+    return grid;
+}
+
+// Page strides must agree wherever logical data spans multiple pages; this op also needs room for every padded page.
+bool output_pages_line_up(const Tensor& input, const Tensor& output, bool every_padded_page) {
+    const bool is_tile = input.layout() == Layout::TILE;
+    const auto tile = is_tile ? std::optional<Tile>(input.tensor_spec().tile()) : std::nullopt;
+    const auto& src_shape = is_tile ? input.padded_shape() : input.logical_shape();
+    const size_t rank = std::max({size_t{2}, src_shape.rank(), output.padded_shape().rank()});
+    const auto data = page_grid(input.logical_shape(), tile, rank);
+    const auto src = page_grid(src_shape, tile, rank);
+    const auto dst = page_grid(output.padded_shape(), tile, rank);
+    uint64_t src_stride = 1;
+    uint64_t dst_stride = 1;
+    for (size_t i = data.size(); i-- > 0;) {
+        if (data[i] > 1 && src_stride != dst_stride) {
+            return false;
+        }
+        src_stride *= src[i];
+        dst_stride *= dst[i];
+    }
+    return !every_padded_page || src_stride <= dst_stride;
+}
+
+}  // namespace
 
 std::pair<bool, std::string> ShardedToInterleavedDeviceOperation::validate_inputs(
     const operation_attributes_t& args, const tensor_args_t& tensor_args) {
@@ -24,9 +67,6 @@ std::pair<bool, std::string> ShardedToInterleavedDeviceOperation::validate_input
     }
     if (!input_tensor.memory_config().is_sharded()) {
         return {false, "Input tensor must be sharded"};
-    }
-    if (input_tensor.memory_config().buffer_type() != BufferType::L1) {
-        return {false, "Input tensor must be in L1"};
     }
     if (tensor_args.preallocated_output.has_value()) {
         const auto& output_tensor = tensor_args.preallocated_output.value();
@@ -48,6 +88,26 @@ std::pair<bool, std::string> ShardedToInterleavedDeviceOperation::validate_input
         if (output_tensor.layout() != input_tensor.layout()) {
             return {false, "Output tensor layout must match input tensor layout"};
         }
+        // Errors, not {false, ...}: this op and its ttnn.copy fallback both write input page n to output page n.
+        TT_FATAL(
+            output_tensor.logical_shape() == input_tensor.logical_shape(),
+            "Input tensor shape {} does not match output tensor shape {}",
+            input_tensor.logical_shape(),
+            output_tensor.logical_shape());
+        const bool same_tile = input_tensor.layout() != Layout::TILE ||
+                               output_tensor.tensor_spec().tile() == input_tensor.tensor_spec().tile();
+        if (args.output_mem_config.memory_layout() == TensorMemoryLayout::INTERLEAVED && same_tile) {
+            TT_FATAL(
+                output_pages_line_up(input_tensor, output_tensor, false),
+                "Output tensor padded shape {} lays out pages differently from input tensor page layout {} for "
+                "shape {}",
+                output_tensor.padded_shape(),
+                input_tensor.layout() == Layout::TILE ? input_tensor.padded_shape() : input_tensor.logical_shape(),
+                input_tensor.logical_shape());
+        }
+    }
+    if (input_tensor.memory_config().buffer_type() != BufferType::L1) {
+        return {false, "Input tensor must be in L1"};
     }
     if (args.output_mem_config.memory_layout() != TensorMemoryLayout::INTERLEAVED) {
         return {false, "Output memory config must be Interleaved"};
@@ -85,6 +145,14 @@ std::pair<bool, std::string> ShardedToInterleavedDeviceOperation::validate_input
                 return {false, "Output tensor tile shape must match input tensor tile shape"};
             }
         }
+    }
+    if (tensor_args.preallocated_output.has_value()) {
+        const auto& output_tensor = tensor_args.preallocated_output.value();
+        TT_FATAL(
+            output_pages_line_up(input_tensor, output_tensor, true),
+            "Output tensor padded shape {} has fewer pages than input tensor padded shape {}",
+            output_tensor.padded_shape(),
+            input_tensor.padded_shape());
     }
     return {true, ""};
 }
