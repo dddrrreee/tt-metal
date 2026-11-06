@@ -89,17 +89,38 @@ get_padded_slice_runtime_args_tile_sharded_output(
         ttnn::operations::experimental::detail::get_num_cores_channels_from_sharded_tensor(output_tensor);
     const uint32_t input_num_tiles_per_channel = tt::div_up(input_padded_shape[3], tt::constants::TILE_WIDTH);
 
-    uint32_t num_tiles_per_channel = tt::div_up(input_num_tiles_per_channel, num_cores_channels);
+    // The output shards split the slice's width, narrower than the input's for a width crop. A wider shard also
+    // takes the input's next columns, and padding past the input.
+    uint32_t num_tiles_per_channel =
+        tt::div_up(tt::div_up(actual_output_shape[-1], tt::constants::TILE_WIDTH), num_cores_channels);
     TT_FATAL(
-        num_tiles_per_channel == tt::div_up(output_shard_shape[1], tt::constants::TILE_WIDTH),
-        "Number of tiles per channel {} should be equal to number of output shard width in tiles {}",
-        num_tiles_per_channel,
-        tt::div_up(output_shard_shape[1], tt::constants::TILE_WIDTH));
+        num_tiles_per_channel <= tt::div_up(output_shard_shape[1], tt::constants::TILE_WIDTH),
+        "Output shards {} tiles wide cannot hold the slice's {} tiles per core",
+        tt::div_up(output_shard_shape[1], tt::constants::TILE_WIDTH),
+        num_tiles_per_channel);
+    // A HEIGHT_SHARDED output's columns past the slice are logical, but the reader fills them with the input's next
+    // columns: allow them only where main does, with shards as wide as the input.
+    TT_FATAL(
+        output_tensor.memory_config().memory_layout() != TensorMemoryLayout::HEIGHT_SHARDED ||
+            output_shard_shape[1] <= actual_output_shape[-1] ||
+            tt::div_up(output_shard_shape[1], tt::constants::TILE_WIDTH) == input_num_tiles_per_channel,
+        "HEIGHT_SHARDED output shards {} columns wide would fill the {}-column slice's padding with input columns",
+        output_shard_shape[1],
+        actual_output_shape[-1]);
 
     [[maybe_unused]] uint32_t output_row_size_bytes = output_shard_shape[1] * output_tensor.element_size();
     uint32_t output_row_size_elems = output_shard_shape[1];
 
-    uint32_t input_channels_num_elems = input_padded_shape[3];
+    // The reader starts at the slice's first column, so each core's columns count from there; a start inside a tile
+    // would also need a shift within the tile, which the reader does not make.
+    TT_FATAL(
+        output_tensor_start[-1] % TILE_WIDTH == 0,
+        "padded_slice reads tiled input from a tile column, so the slice must start at a multiple of {} columns; "
+        "got {}",
+        TILE_WIDTH,
+        output_tensor_start[-1]);
+    const uint32_t input_channels_num_elems = input_padded_shape[3] - output_tensor_start[-1];
+    const uint32_t input_tiles_from_start = input_num_tiles_per_channel - output_tensor_start[-1] / TILE_WIDTH;
 
     std::uint32_t num_dims = static_cast<std::uint32_t>(input_shape.rank());
 
@@ -118,7 +139,8 @@ get_padded_slice_runtime_args_tile_sharded_output(
 
     log_debug(tt::LogOp, "Output Start : {}, Output Shape : {}", output_tensor_start, actual_output_shape);
 
-    accumulated_total_tiles_per_dim[0] = tt::div_up(actual_output_shape[-1], TILE_WIDTH);
+    // The reader steps through the input, whose rows are the input's width in tiles even under a width crop.
+    accumulated_total_tiles_per_dim[0] = input_num_tiles_per_channel;
     accumulated_total_tiles_per_dim[1] = tt::div_up(input_shape[-2], TILE_HEIGHT) * accumulated_total_tiles_per_dim[0];
 
     num_input_tiles_per_dim[0] = tt::div_up(input_padded_shape[-1], TILE_WIDTH) - num_output_tiles_per_dim[0];
@@ -191,12 +213,13 @@ get_padded_slice_runtime_args_tile_sharded_output(
         ttnn::operations::data_movement::get_tiled_start_offset(input_tensor, output_tensor_start);
     log_debug(tt::LogOp, "Start Offset: {}", start_offset);
     uint32_t core_index = 0;
+    const CoreCoord grid_start = output_shard_spec.grid.bounding_box().start_coord;
     for (const auto& core : cores) {
         uint32_t core_w_index = 0;
         uint32_t core_h_index = core_index;
         if (is_block_sharded) {
-            core_w_index = rm_orientation ? core.x : core.y;
-            core_h_index = rm_orientation ? core.y : core.x;
+            core_w_index = rm_orientation ? core.x - grid_start.x : core.y - grid_start.y;
+            core_h_index = rm_orientation ? core.y - grid_start.y : core.x - grid_start.x;
         } else if (is_width_sharded) {
             core_h_index = 0;
             core_w_index = core_index;
@@ -209,14 +232,17 @@ get_padded_slice_runtime_args_tile_sharded_output(
         const uint32_t width_offset_elems = core_w_index * output_row_size_elems;
         int this_core_output_channels_end_elem = width_offset_elems + output_row_size_elems;
 
-        uint32_t output_channels_padding_elems =
-            std::max<int>(this_core_output_channels_end_elem - input_channels_num_elems, 0);
+        // A column of shards wholly past the input, a spare one, reads nothing and is all padding: its tile count
+        // underflowed and its padding started before its rows.
+        uint32_t output_channels_padding_elems = std::min<uint32_t>(
+            std::max<int>(this_core_output_channels_end_elem - input_channels_num_elems, 0), output_row_size_elems);
 
         const uint32_t width_offset_start_tile = width_offset_elems / TILE_WIDTH;
         const uint32_t width_offset_end_tile = std::min(
             tt::div_up(std::min(width_offset_elems + output_row_size_elems, input_channels_num_elems), TILE_WIDTH),
-            input_num_tiles_per_channel);
-        const uint32_t this_core_num_tiles_per_channel = width_offset_end_tile - width_offset_start_tile;
+            input_tiles_from_start);
+        const uint32_t this_core_num_tiles_per_channel =
+            width_offset_end_tile > width_offset_start_tile ? width_offset_end_tile - width_offset_start_tile : 0;
         const uint32_t misalignment_bytes = width_offset_elems % TILE_WIDTH * output_tensor.element_size();
 
         if (!is_non_aligned && output_channels_padding_elems == 0) {
@@ -291,10 +317,14 @@ get_padded_slice_runtime_args_tile_sharded_output(
         }
         uint32_t num_tiles_this_core = num_full_rows * num_tiles_per_full_row;
 
-        num_tiles_this_core += ((tt::round_up(end_index_in_input_per_dim[num_dims - 2], TILE_HEIGHT) -
-                                 tt::round_down(output_tensor_start[num_dims - 2], TILE_HEIGHT)) /
-                                TILE_HEIGHT) *
-                               max_num_tiles_per_row;
+        // A core that ends on a plane boundary has no partial last plane; with a height start inside a tile, this
+        // term counted one tile row there anyway, read past the input.
+        if (end_index_per_dim[2] != 0) {
+            num_tiles_this_core += ((tt::round_up(end_index_in_input_per_dim[num_dims - 2], TILE_HEIGHT) -
+                                     tt::round_down(output_tensor_start[num_dims - 2], TILE_HEIGHT)) /
+                                    TILE_HEIGHT) *
+                                   max_num_tiles_per_row;
+        }
 
         if (start_index_per_dim[2] != 0) {
             num_tiles_this_core += ((tt::round_up(output_tensor_start[-2] + actual_output_shape[-2], TILE_HEIGHT) -

@@ -89,7 +89,8 @@ PaddedSliceRmReaderOffset padded_slice_rm_reader_offset(
 
     uint32_t core_w_index = 0;
     if (is_block_sharded) {
-        core_w_index = rm_orientation ? core.x : core.y;
+        const CoreCoord grid_start = output_shard_spec.grid.bounding_box().start_coord;
+        core_w_index = rm_orientation ? core.x - grid_start.x : core.y - grid_start.y;
     } else if (is_width_sharded) {
         core_w_index = core_index;
     }
@@ -196,18 +197,24 @@ get_padded_slice_runtime_args_rm_sharded_output(
     std::vector<std::pair<std::vector<uint32_t>, std::vector<uint32_t>>> ret_val(num_cores_total);
 
     const uint32_t num_sticks_per_core = output_shard_spec.shape[0];
+    // The last row of shards can be partly past the slice; its cores read only the slice's real sticks.
+    uint32_t total_output_sticks = 1;
+    for (uint32_t d = 0; d + 1 < actual_output_shape.rank(); ++d) {
+        total_output_sticks *= actual_output_shape[d];
+    }
 
     log_debug(tt::LogOp, "num_stick_per_core: {}", num_sticks_per_core);
 
     uint32_t start_offset = ttnn::operations::data_movement::get_rm_start_offset(input_tensor, output_tensor_start);
 
     uint32_t core_index = 0;
+    const CoreCoord grid_start = output_shard_spec.grid.bounding_box().start_coord;
     for (const auto& core : cores) {
         uint32_t core_w_index = 0;
         uint32_t core_h_index = core_index;
         if (is_block_sharded) {
-            core_w_index = rm_orientation ? core.x : core.y;
-            core_h_index = rm_orientation ? core.y : core.x;
+            core_w_index = rm_orientation ? core.x - grid_start.x : core.y - grid_start.y;
+            core_h_index = rm_orientation ? core.y - grid_start.y : core.x - grid_start.x;
         } else if (is_width_sharded) {
             core_h_index = 0;
             core_w_index = core_index;
@@ -227,7 +234,9 @@ get_padded_slice_runtime_args_rm_sharded_output(
 
         int this_input_row_size_bytes =
             std::max(std::min<int>(output_row_size_bytes, slice_row_size_bytes - width_offset), 0);
-        uint32_t this_core_num_sticks = num_sticks_per_core;
+        uint32_t this_core_num_sticks = num_sticks_written < total_output_sticks
+                                            ? std::min(num_sticks_per_core, total_output_sticks - num_sticks_written)
+                                            : 0;
         if (this_input_row_size_bytes == 0) {
             this_core_num_sticks = 0;
         }
