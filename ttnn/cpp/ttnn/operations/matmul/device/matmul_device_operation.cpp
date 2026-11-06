@@ -2571,6 +2571,44 @@ void validate_matmul_mcast1d_config(
                     program_config.fuse_batch,
                     get_batch_size(a_shape_padded));
             }
+            if (program_config.mcast_in0 && !in1_delivered && !attributes.transpose_b) {
+                const auto& shard_spec = input_tensor_b.shard_spec().value();
+                const auto shard_cores = tt::tt_metal::corerange_to_cores(
+                    shard_spec.grid, std::nullopt, shard_spec.orientation == tt::tt_metal::ShardOrientation::ROW_MAJOR);
+                const auto N = operations::matmul::utilities::get_N_dim(b_shape_padded, in1_tile);
+                const uint32_t num_blocks = tt::div_up(N, program_config.per_core_N);
+                TT_FATAL(
+                    shard_cores.size() >= num_blocks,
+                    "{}: input B has {} shard cores but {} N blocks need one shard each",
+                    config_name,
+                    shard_cores.size(),
+                    num_blocks);
+                const auto worker_bbox = program_config.allowed_worker_cores.value().bounding_box();
+                CoreCoord start_core = worker_bbox.start_coord;
+                if (attributes.sub_device_id.has_value()) {
+                    start_core =
+                        input_tensor_a.device()
+                            ->worker_cores(
+                                tt::tt_metal::HalProgrammableCoreType::TENSIX, attributes.sub_device_id.value())
+                            .bounding_box()
+                            .start_coord;
+                }
+                const auto grid = worker_bbox.grid_size();
+                const CoreRangeSet work_rect(
+                    CoreRange(start_core, CoreCoord(start_core.x + grid.x - 1, start_core.y + grid.y - 1)));
+                const auto work_grid = tt::tt_metal::num_cores_to_corerangeset_in_subcoregrids(
+                    start_core, num_blocks, work_rect, /*row_wise=*/true);
+                const auto work_cores = tt::tt_metal::corerange_to_cores(work_grid, std::nullopt, /*row_wise=*/true);
+                for (uint32_t i = 0; i < num_blocks; ++i) {
+                    TT_FATAL(
+                        shard_cores[i] == work_cores[i],
+                        "{}: input B shard {} is on core {}, but its N block runs on core {}",
+                        config_name,
+                        i,
+                        shard_cores[i],
+                        work_cores[i]);
+                }
+            }
             if (optional_bias.has_value()) {
                 TT_FATAL(
                     input_tensor_b.shard_spec().value().shape[1] == optional_bias.value().shard_spec().value().shape[1],
