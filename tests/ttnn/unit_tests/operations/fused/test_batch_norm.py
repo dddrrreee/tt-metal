@@ -1301,3 +1301,48 @@ def test_batch_norm_running_var_bessel_correction(device):
         atol=1e-3,
         check_pcc=False,
     )
+
+
+@pytest.mark.parametrize("case", ["eval_stats", "train_weight", "train_running_stats"])
+def test_batch_norm_fp32_mixed_without_fp32_dest_acc(device, case):
+    torch.manual_seed(11)
+    shape = (2, 3, 33, 40)
+    x = torch.randn(shape).to(torch.bfloat16).float()
+    mean = torch.tensor([0.125, -0.25, 0.5]).reshape(1, 3, 1, 1)
+    var = torch.tensor([1.0, 2.0, 4.0]).reshape(1, 3, 1, 1)
+    weight = torch.tensor([1.0, -0.5, 2.0]).reshape(1, 3, 1, 1)
+    put = lambda t, dtype: ttnn.from_torch(t, dtype=dtype, layout=ttnn.TILE_LAYOUT, device=device)
+    is_running = case == "train_running_stats"
+    x_tt = put(x, ttnn.float32 if is_running else ttnn.bfloat16)
+    param_dtype = ttnn.bfloat16 if is_running else ttnn.float32
+    mean_tt = put(mean, param_dtype) if case != "train_weight" else None
+    var_tt = put(var, param_dtype) if case != "train_weight" else None
+    weight_tt = put(weight, param_dtype) if case == "train_weight" else None
+    config = ttnn.init_device_compute_kernel_config(
+        device.arch(),
+        math_fidelity=ttnn.MathFidelity.HiFi4,
+        math_approx_mode=False,
+        fp32_dest_acc_en=False,
+        packer_l1_acc=False,
+    )
+    training = case != "eval_stats"
+    y = ttnn.batch_norm(
+        x_tt,
+        running_mean=mean_tt,
+        running_var=var_tt,
+        weight=weight_tt,
+        training=training,
+        eps=1e-5,
+        momentum=0.1,
+        compute_kernel_config=config,
+    )
+    batch_mean = x.mean(dim=(0, 2, 3), keepdim=True) if training else mean
+    batch_var = x.var(dim=(0, 2, 3), unbiased=False, keepdim=True) if training else var
+    expected = (x - batch_mean) * torch.rsqrt(batch_var + 1e-5)
+    if weight_tt is not None:
+        expected *= weight
+    torch.testing.assert_close(ttnn.to_torch(y).float(), expected, rtol=0.05, atol=0.05)
+    if is_running:
+        torch.testing.assert_close(ttnn.to_torch(mean_tt).float(), 0.9 * mean + 0.1 * batch_mean, rtol=0.05, atol=0.05)
+        unbiased_var = x.var(dim=(0, 2, 3), unbiased=True, keepdim=True)
+        torch.testing.assert_close(ttnn.to_torch(var_tt).float(), 0.9 * var + 0.1 * unbiased_var, rtol=0.05, atol=0.05)

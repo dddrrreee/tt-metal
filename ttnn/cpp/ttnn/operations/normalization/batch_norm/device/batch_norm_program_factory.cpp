@@ -217,10 +217,10 @@ ttnn::device_operation::ProgramArtifacts BatchNormOperation::BatchNormFactory::c
     uint32_t f_single_tile_size = tt::tile_size(f_data_format);
     uint32_t interm_single_tile_size = tt::tile_size(interm_data_format);
 
-    // If accumulation occurs in float32 but output dtype is different, the compute kernel must typecast from
-    // float32 to output dtype
+    // A 16-bit Dest already holds bfloat16 values, so it can pack directly to the output format.
+    const bool fp32_dest_acc_en = ttnn::get_fp32_dest_acc_en(operation_attributes.compute_kernel_config);
     const bool needs_output_typecast =
-        (interm_data_format == DataFormat::Float32 && c_data_format != DataFormat::Float32);
+        fp32_dest_acc_en && interm_data_format == DataFormat::Float32 && c_data_format != DataFormat::Float32;
 
     // we parallelize the computation across the output tiles
     auto compute_with_storage_grid_size = device.compute_with_storage_grid_size();
@@ -366,7 +366,6 @@ ttnn::device_operation::ProgramArtifacts BatchNormOperation::BatchNormFactory::c
     // math_approx_mode, fp32_dest_acc_en and dst_full_sync_en -- into hw_config; packer_l1_acc and
     // throttle_level are deliberately not translated. ComputeHardwareConfig has no packer_l1_acc field,
     // so the value this op resolves for it stays unapplied, as it also was under the descriptor API.
-    const bool fp32_dest_acc_en = ttnn::get_fp32_dest_acc_en(operation_attributes.compute_kernel_config);
     const bool use_sfpu_kernel = fp32_dest_acc_en || any_float32;
 
     Group<DFBBinding> compute_dfb_bindings{

@@ -212,8 +212,10 @@ ttnn::device_operation::ProgramArtifacts RunningStatistics::RunningStatisticsPro
 
     auto running_stat_data_format =
         running_mean_has_value ? d_data_format : (running_var_has_value ? e_data_format : DataFormat::Float16_b);
-    const bool stat_format_needs_typecast =
-        (interm_data_format == DataFormat::Float32 && running_stat_data_format != DataFormat::Float32);
+    // A 16-bit Dest already holds bfloat16 values, so it can pack directly to the stat format.
+    const bool fp32_dest_acc_en = ttnn::get_fp32_dest_acc_en(operation_attributes.compute_kernel_config);
+    const bool stat_format_needs_typecast = fp32_dest_acc_en && interm_data_format == DataFormat::Float32 &&
+                                            running_stat_data_format != DataFormat::Float32;
     const bool needs_mean_typecast = running_mean_has_value && stat_format_needs_typecast;
     const bool needs_var_typecast = running_var_has_value && stat_format_needs_typecast;
 
@@ -379,7 +381,6 @@ ttnn::device_operation::ProgramArtifacts RunningStatistics::RunningStatisticsPro
     // math_approx_mode, fp32_dest_acc_en and dst_full_sync_en -- into hw_config; packer_l1_acc and
     // throttle_level are deliberately not translated. ComputeHardwareConfig has no packer_l1_acc field,
     // so the value this op resolves for it stays unapplied, as it also was under the descriptor API.
-    const bool fp32_dest_acc_en = ttnn::get_fp32_dest_acc_en(operation_attributes.compute_kernel_config);
     const bool use_sfpu_kernel = fp32_dest_acc_en || any_float32;
 
     Group<DFBBinding> compute_dfb_bindings{
