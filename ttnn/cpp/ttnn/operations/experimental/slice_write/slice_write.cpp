@@ -71,6 +71,21 @@ ttnn::Tensor slice_write(
         return output_tensor;
     }
 
+    if (tiled && ends.size() >= 2) {
+        // The tiled factories write whole tiles: a non-empty slice ending inside a tile would overwrite destination
+        // values past its end with the input's padding, unless they are the destination's own padding.
+        const size_t rank = ends.size();
+        const auto& dest_shape = output_tensor.logical_shape();
+        TT_FATAL(
+            (ends[rank - 2] % tt::constants::TILE_HEIGHT == 0 || ends[rank - 2] >= dest_shape[-2]) &&
+                (ends[rank - 1] % tt::constants::TILE_WIDTH == 0 || ends[rank - 1] >= dest_shape[-1]),
+            "slice_write writes whole tiles, so a tiled slice must end on a tile boundary or at the destination's end; "
+            "got ends {} and {} in a destination of shape {}",
+            ends[rank - 2],
+            ends[rank - 1],
+            dest_shape);
+    }
+
     // Sharding is only 2D.
     if (input.is_sharded() && logical_input_shape[0] == 1 && logical_input_shape[1] == 1) {
         auto shard_spec = input_tensor.shard_spec().value();

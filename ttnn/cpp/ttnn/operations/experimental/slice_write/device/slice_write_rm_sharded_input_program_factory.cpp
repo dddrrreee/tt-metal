@@ -38,9 +38,10 @@ uint32_t slice_write_rm_sharded_writer_address(
     const bool rm_orientation = shard_spec.orientation == ShardOrientation::ROW_MAJOR;
     const bool is_block_sharded = input_tensor.memory_config().memory_layout() == TensorMemoryLayout::BLOCK_SHARDED;
     const uint32_t input_row_size_bytes = shard_spec.shape[1] * input_tensor.element_size();
+    const CoreCoord grid_start = shard_spec.grid.bounding_box().start_coord;
     uint32_t core_w_index = 0;
     if (is_block_sharded) {
-        core_w_index = rm_orientation ? core.x : core.y;
+        core_w_index = rm_orientation ? core.x - grid_start.x : core.y - grid_start.y;
     }
     const uint32_t width_offset = core_w_index * input_row_size_bytes;
     return output_buffer->address() + (output_tensor_start[-1] * output_tensor.element_size()) + width_offset;
@@ -85,6 +86,7 @@ SliceWriteRuntimeArgs get_slice_write_runtime_args_rm_sharded_input(
     bool is_block_sharded = input_tensor.memory_config().memory_layout() == TensorMemoryLayout::BLOCK_SHARDED;
 
     uint32_t output_row_size_bytes = output_shape[-1] * input_tensor.element_size();
+    const uint32_t slice_row_size_bytes = input_shape[-1] * input_tensor.element_size();
     uint32_t input_row_size_bytes = input_shard_shape[1] * input_tensor.element_size();
 
     std::uint32_t num_dims = static_cast<std::uint32_t>(input_shape.rank());
@@ -166,13 +168,16 @@ SliceWriteRuntimeArgs get_slice_write_runtime_args_rm_sharded_input(
     SliceWriteRuntimeArgs ret_val(num_cores_total);
 
     uint32_t start_offset = ttnn::operations::data_movement::get_rm_start_offset(output_tensor, output_tensor_start);
+    // Rows of the slice, over every dimension but the last.
+    const uint32_t slice_sticks = accumulated_input_total_per_dim[num_dims - 1];
     uint32_t core_index = 0;
+    const CoreCoord grid_start = shard_spec.grid.bounding_box().start_coord;
     for (const auto& core : cores) {
         uint32_t core_w_index = 0;
         uint32_t core_h_index = core_index;
         if (is_block_sharded) {
-            core_w_index = rm_orientation ? core.x : core.y;
-            core_h_index = rm_orientation ? core.y : core.x;
+            core_w_index = rm_orientation ? core.x - grid_start.x : core.y - grid_start.y;
+            core_h_index = rm_orientation ? core.y - grid_start.y : core.x - grid_start.x;
         }
         const uint32_t num_sticks_read = core_h_index * num_sticks_per_core;
         const uint32_t width_offset = core_w_index * input_row_size_bytes;
@@ -193,14 +198,21 @@ SliceWriteRuntimeArgs get_slice_write_runtime_args_rm_sharded_input(
             max_num_sticks_this_core += size_till_end[j] * accumulated_input_total_per_dim[j - 1];
         }
 
-        uint32_t this_input_row_size_bytes = std::min(input_row_size_bytes, output_row_size_bytes - width_offset);
+        // Each core writes the part of its shard's rows that lies inside the slice.
+        uint32_t this_input_row_size_bytes = width_offset < slice_row_size_bytes
+                                                 ? std::min(input_row_size_bytes, slice_row_size_bytes - width_offset)
+                                                 : 0;
         WriterKernelArgs writer_kernel_args = common_writer_kernel_args;
         writer_kernel_args[0] =
             slice_write_rm_sharded_writer_address(input_tensor, output_tensor, output_tensor_start, core);
         writer_kernel_args[2] = this_input_row_size_bytes;
 
+        // A core whose rows start past the slice, in a spare row of shards, writes nothing: its position above
+        // wraps around to the slice's first rows.
         uint32_t num_sticks_this_core =
-            std::min<uint32_t>(num_sticks_per_core, std::max<int>(max_num_sticks_this_core + 1, 0));
+            this_input_row_size_bytes == 0 || num_sticks_read >= slice_sticks
+                ? 0
+                : std::min<uint32_t>(num_sticks_per_core, std::max<int>(max_num_sticks_this_core + 1, 0));
 
         log_trace(
             tt::LogOp,

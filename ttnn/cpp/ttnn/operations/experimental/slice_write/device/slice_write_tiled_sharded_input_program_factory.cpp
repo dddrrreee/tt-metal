@@ -68,8 +68,6 @@ SliceWriteRuntimeArgs get_slice_write_runtime_args_tiled_sharded_input(
     bool is_block_sharded = input_tensor.memory_config().memory_layout() == TensorMemoryLayout::BLOCK_SHARDED;
     bool is_width_sharded = input_tensor.memory_config().memory_layout() == TensorMemoryLayout::WIDTH_SHARDED;
 
-    uint32_t num_cores_channels = get_num_cores_channels_from_sharded_tensor(input_tensor);
-
     std::uint32_t num_dims = static_cast<std::uint32_t>(actual_input_shape.rank());
     std::vector<uint32_t> num_output_tiles_per_dim(num_dims);
     std::vector<uint32_t> num_input_tiles_per_dim(num_dims);
@@ -79,7 +77,9 @@ SliceWriteRuntimeArgs get_slice_write_runtime_args_tiled_sharded_input(
     std::vector<uint32_t> id_per_dim(num_dims);
     std::vector<uint32_t> size_till_end(num_dims);
 
-    num_input_tiles_per_dim[0] = tt::div_up(actual_input_shape[-1], (TILE_WIDTH * num_cores_channels));
+    // Each core holds whole rows of its shard, the shard's width in tiles. With spare columns of shards, or shards
+    // wider than their share of the slice, that is more than the slice's width split across the grid.
+    num_input_tiles_per_dim[0] = shard_spec.shape[1] / TILE_WIDTH;
     num_input_tiles_per_dim[1] = tt::div_up(actual_input_shape[-2], TILE_HEIGHT);
 
     num_output_tiles_per_dim[0] = tt::div_up(output_shape[-1], TILE_WIDTH) - num_input_tiles_per_dim[0];
@@ -100,7 +100,8 @@ SliceWriteRuntimeArgs get_slice_write_runtime_args_tiled_sharded_input(
     accumulated_total_tiles_per_dim[0] = tt::div_up(output_shape[-1], TILE_WIDTH);
     accumulated_total_tiles_per_dim[1] = tt::div_up(output_shape[-2], TILE_HEIGHT) * accumulated_total_tiles_per_dim[0];
 
-    uint32_t output_channel_tiles = accumulated_total_tiles_per_dim[0];
+    // The slice's width in tiles; its columns start at 0.
+    const uint32_t slice_tiles_w = tt::div_up(actual_input_shape[-1], TILE_WIDTH);
     accumulated_input_total_tiles_per_dim[0] = num_input_tiles_per_dim[0];
     accumulated_input_total_tiles_per_dim[1] = num_input_tiles_per_dim[1] * accumulated_input_total_tiles_per_dim[0];
     for (int32_t i = 2; i < num_dims; i++) {
@@ -147,13 +148,19 @@ SliceWriteRuntimeArgs get_slice_write_runtime_args_tiled_sharded_input(
     SliceWriteRuntimeArgs ret_val(num_cores_total);
 
     uint32_t start_offset = ttnn::operations::data_movement::get_tiled_start_offset(output_tensor, output_tensor_start);
+    // Tile rows of the slice, over N, C and H.
+    uint32_t slice_tile_rows = 1;
+    for (uint32_t j = 1; j < num_dims; j++) {
+        slice_tile_rows *= num_input_tiles_per_dim[j];
+    }
     uint32_t core_index = 0;
+    const CoreCoord grid_start = shard_spec.grid.bounding_box().start_coord;
     for (const auto& core : cores) {
         uint32_t core_w_index = 0;
         uint32_t core_h_index = core_index;
         if (is_block_sharded) {
-            core_w_index = rm_orientation ? core.x : core.y;
-            core_h_index = rm_orientation ? core.y : core.x;
+            core_w_index = rm_orientation ? core.x - grid_start.x : core.y - grid_start.y;
+            core_h_index = rm_orientation ? core.y - grid_start.y : core.x - grid_start.x;
         } else if (is_width_sharded) {
             core_h_index = 0;
             core_w_index = core_index;
@@ -162,7 +169,9 @@ SliceWriteRuntimeArgs get_slice_write_runtime_args_tiled_sharded_input(
         const uint32_t num_sticks_read = core_h_index * num_tiles_nhw_per_core;
         const uint32_t width_offset = core_w_index * num_tiles_per_channel;
 
-        const uint32_t channels_tiles_this_core = std::min(output_channel_tiles - width_offset, num_tiles_per_channel);
+        // The part of this core's rows inside the slice; none for a column of shards wholly past it.
+        const uint32_t channels_tiles_this_core =
+            width_offset < slice_tiles_w ? std::min(slice_tiles_w - width_offset, num_tiles_per_channel) : 0;
         id_per_dim[0] = 0;
         uint32_t unpadded_written = num_sticks_read;
         uint32_t start_id = id_per_dim[0] + start_offset + width_offset;
@@ -181,8 +190,13 @@ SliceWriteRuntimeArgs get_slice_write_runtime_args_tiled_sharded_input(
         }
         WriterKernelArgs writer_kernel_args = common_writer_kernel_args;
 
-        uint32_t num_tiles_this_core = std::min<uint32_t>(
-            num_tiles_nhw_per_core * num_tiles_per_channel, std::max<int>(max_num_tiles_this_core, 0));
+        // A core whose rows start past the slice, in a spare row of shards, writes nothing (its position above
+        // wraps around to the slice's first rows), and so does a core whose columns all lie past the slice.
+        uint32_t num_tiles_this_core =
+            num_sticks_read >= slice_tile_rows || channels_tiles_this_core == 0
+                ? 0
+                : std::min<uint32_t>(
+                      num_tiles_nhw_per_core * num_tiles_per_channel, std::max<int>(max_num_tiles_this_core, 0));
 
         log_trace(
             tt::LogOp,
@@ -223,7 +237,6 @@ ProgramDescriptor SliceWriteTiledShardedInputProgramFactory::create_descriptor(
     const auto& input_padded_shape = input.padded_shape();
 
     auto input_shape = input.logical_shape();
-    auto output_shape = output.logical_shape();
     auto actual_input_shape = input_shape;
     for (int index = 0; index < input_shape.rank(); index++) {
         actual_input_shape[index] = output_tensor_end[index] - output_tensor_start[index];
@@ -277,8 +290,13 @@ ProgramDescriptor SliceWriteTiledShardedInputProgramFactory::create_descriptor(
 
     uint32_t num_tiles_height_per_core = shard_spec.shape[0] / TILE_HEIGHT;
     uint32_t num_tiles_channel_per_core = shard_spec.shape[1] / TILE_HEIGHT;
-
-    uint32_t num_cores_channels = get_num_cores_channels_from_sharded_tensor(input);
+    // The factory counts in 32-wide tiles, so its shards must be whole tiles wide (a smaller tile shape can make them
+    // narrower, and the counts below would divide by zero).
+    TT_FATAL(
+        shard_spec.shape[1] % TILE_WIDTH == 0,
+        "slice_write's tiled sharded path needs input shards a whole number of {}-column tiles wide; got {}",
+        TILE_WIDTH,
+        shard_spec.shape[1]);
 
     TT_FATAL(
         input_cb_data_format == output_cb_data_format,
@@ -298,7 +316,8 @@ ProgramDescriptor SliceWriteTiledShardedInputProgramFactory::create_descriptor(
     std::vector<uint32_t> writer_compile_time_args_vec = {(std::uint32_t)src0_cb_index, 0};
     tt::tt_metal::TensorAccessorArgs(dst_buffer).append_to(writer_compile_time_args_vec);
     KernelDescriptor::Defines writer_defines;
-    if (num_tiles_channel_per_core * TILE_WIDTH * num_cores_channels > output_shape[-1]) {
+    // A core whose shard rows end inside the slice writes only their part inside it.
+    if (tt::div_up(output_tensor_end[-1] - output_tensor_start[-1], TILE_WIDTH) % num_tiles_channel_per_core != 0) {
         writer_defines.emplace_back("UNPAD_INPUT_WIDTH", "1");
     }
     KernelDescriptor reader_kernel;
