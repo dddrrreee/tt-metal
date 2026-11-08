@@ -248,6 +248,24 @@ void TilizeDeviceOperation::validate_on_program_cache_miss(
             alignment_requirement);  // The shard width must be an aligned size, or we will face alignment issues
                                      // when the reader tries to write to the CB.
     }
+
+    // The single-core factory tilizes every physical input row in order into an output sized from the logical
+    // shape, so whole padding tiles in the input would shift the later batches and write past the output.
+    if (std::holds_alternative<ttnn::prim::TilizeSingleCoreProgramFactory>(
+            select_program_factory(operation_attributes, tensor_args))) {
+        const uint32_t tile_hw = operation_attributes.tile.get_tile_hw();
+        const uint64_t input_tiles = input_tensor_a.physical_volume() / tile_hw;
+        const uint64_t output_tiles =
+            compute_output_specs(operation_attributes, tensor_args).padded_shape().volume() / tile_hw;
+        TT_FATAL(
+            input_tiles == output_tiles,
+            "Single-core tilize does not support an input padded past its tile-rounded logical shape: input {} padded "
+            "{} has {} tiles, the output only {}",
+            input_tensor_a.logical_shape(),
+            input_tensor_a.padded_shape(),
+            input_tiles,
+            output_tiles);
+    }
 }
 
 TilizeDeviceOperation::spec_return_value_t TilizeDeviceOperation::compute_output_specs(

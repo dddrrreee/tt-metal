@@ -1286,3 +1286,20 @@ def test_tilize_uint8_tall_narrow_program_cache_addr_change(device, shape):
 
     assert entries == 1, "tilize should build exactly one program for a fixed config"
     device.disable_and_clear_program_cache()
+
+
+@pytest.mark.parametrize("single_core", [{"use_multicore": False}, {"use_low_perf": True}], ids=["no_mc", "low_perf"])
+def test_tilize_single_core_rejects_whole_tile_height_padding(device, expect_error, single_core):
+    def padded_to_device(torch_input, rows):
+        host = ttnn.from_torch(torch_input, dtype=ttnn.bfloat16, layout=ttnn.ROW_MAJOR_LAYOUT)
+        host = ttnn.reshape(host, ttnn.Shape([2, 1, rows, 512]), ttnn.Shape(list(torch_input.shape)))
+        return ttnn.to_device(host, device, memory_config=ttnn.DRAM_MEMORY_CONFIG)
+
+    # 32 rows per batch stored as 64: the factory would tilize 64 tiles into a 32-tile output.
+    with expect_error(RuntimeError, "Single-core tilize does not support an input padded past its tile-rounded"):
+        ttnn.tilize(padded_to_device(torch.ones(2, 1, 64, 512, dtype=torch.bfloat16), 32), **single_core)
+
+    # 30 rows per batch stored as 32 (padded only to the tile) still tilizes.
+    torch_input = torch.rand(2, 1, 32, 512, dtype=torch.bfloat16)
+    tt_output = ttnn.tilize(padded_to_device(torch_input, 30), **single_core)
+    assert_equal(torch_input[:, :, :30], ttnn.to_torch(tt_output))
