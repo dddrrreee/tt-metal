@@ -370,6 +370,29 @@ FORCE_INLINE void fill_tile_with_first_row_bfloat16(uint32_t l1_write_ptr) {
 }
 
 // Reads the very first row of the CB and fills the entire tile with the same row.
+// Tile is assumed to have 8-bit elements (uint8): four 16x16 faces of 256 B, a face row is 16 B (4 words).
+FORCE_INLINE void fill_tile_with_first_row_uint8(uint32_t l1_write_ptr) {
+    // Faces 0 and 2 take the first row of face 0, faces 1 and 3 the first row of face 1.
+    auto* ptr = reinterpret_cast<volatile tt_l1_ptr uint32_t*>(l1_write_ptr);
+    uint32_t row_offset = 4;  // start at second row since first row is source
+    uint32_t num_rows = 15;
+
+    // iterate over face pairs (0,1) and (2,3)
+    for (uint32_t k = 0, face_offset = 0; k < 2; ++k, face_offset += 128) {
+        for (uint32_t row = 0; row < num_rows; ++row) {
+            uint32_t dst_offset = face_offset + row_offset;
+            for (uint32_t col = 0; col < 4; ++col) {
+                ptr[dst_offset + col] = ptr[col];            // left face
+                ptr[dst_offset + col + 64] = ptr[col + 64];  // right face
+            }
+            row_offset += 4;
+        }
+        row_offset = 0;
+        num_rows = 16;
+    }
+}
+
+// Reads the very first row of the CB and fills the entire tile with the same row.
 // Tile is assumed to have 32-bit elements (float32/int32).
 FORCE_INLINE void fill_tile_with_first_row(uint32_t l1_write_ptr) {
     // Replicate the row with local NoC copies rather than ~992 volatile loads and ~992 stores.

@@ -517,6 +517,10 @@ std::map<std::string, std::string> make_dataflow_defines(
         defines["FILL_TILE_WITH_FIRST_ELEMENT"] = "fill_tile_with_first_element_bfloat16";
         defines["FILL_WITH_VALUE"] = "fill_with_val_bfloat16";
     }
+    // A uint8 tile is 1024 B: the 16-bit row fill would read 2 rows as one and store a whole bf16 tile (2048 B).
+    if (dtype == DataType::UINT8) {
+        defines["FILL_TILE_WITH_FIRST_ROW"] = "fill_tile_with_first_row_uint8";
+    }
 
     // Add defines for second tensor (true tensor)
     if (b_dtype == DataType::FLOAT32) {
@@ -550,6 +554,9 @@ std::map<std::string, std::string> make_dataflow_defines(
         defines["FILL_TILE_WITH_FIRST_ELEMENT_B"] = "fill_tile_with_first_element_bfloat16";
         defines["FILL_WITH_VALUE_B"] = "fill_with_val_bfloat16";
     }
+    if (b_dtype == DataType::UINT8) {
+        defines["FILL_TILE_WITH_FIRST_ROW_B"] = "fill_tile_with_first_row_uint8";
+    }
     // For TTT variant, Add defines for third tensor (false tensor)
     if (c_dtype.has_value()) {
         if (c_dtype == DataType::FLOAT32) {
@@ -582,6 +589,9 @@ std::map<std::string, std::string> make_dataflow_defines(
             defines["FILL_TILE_WITH_FIRST_ROW_C"] = "fill_tile_with_first_row_bfloat16";
             defines["FILL_TILE_WITH_FIRST_ELEMENT_C"] = "fill_tile_with_first_element_bfloat16";
             defines["FILL_WITH_VALUE_C"] = "fill_with_val_bfloat16";
+        }
+        if (c_dtype == DataType::UINT8) {
+            defines["FILL_TILE_WITH_FIRST_ROW_C"] = "fill_tile_with_first_row_uint8";
         }
     }
 

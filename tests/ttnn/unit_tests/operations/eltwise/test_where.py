@@ -1414,3 +1414,27 @@ def test_where_rejects_scalar_not_representable_in_int_tensor(device, expect_err
             ttnn.where(tt_c, tt_t, scalar)
         else:
             ttnn.where(tt_c, scalar, tt_t)
+
+
+@pytest.mark.parametrize("uint8_operand", ["predicate", "true_values", "false_values"])
+def test_where_uint8_row_broadcast(device, uint8_operand):
+    """A uint8 [1, 1, 1, 32] operand broadcast down 64 rows, two output tiles on one core."""
+    torch.manual_seed(0)
+    full, row = (1, 1, 64, 32), (1, 1, 1, 32)
+    torch_pred = torch.randint(0, 2, row if uint8_operand == "predicate" else full, dtype=torch.int32)
+    torch_true = torch.randint(0, 256, row if uint8_operand == "true_values" else full, dtype=torch.int32)
+    torch_false = torch.randint(0, 256, row if uint8_operand == "false_values" else full, dtype=torch.int32)
+
+    def to_device(t, name):
+        dtype = ttnn.uint8 if name == uint8_operand else ttnn.uint32
+        return ttnn.from_torch(t, dtype=dtype, layout=ttnn.TILE_LAYOUT, device=device)
+
+    one_core = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(0, 0))})
+    result = ttnn.where(
+        to_device(torch_pred, "predicate"),
+        to_device(torch_true, "true_values"),
+        to_device(torch_false, "false_values"),
+        sub_core_grids=one_core,
+    )
+    expected = torch.where(torch_pred.bool(), torch_true, torch_false)
+    assert torch.equal(ttnn.to_torch(result).to(torch.int64), expected.to(torch.int64))
