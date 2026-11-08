@@ -161,6 +161,7 @@ struct RmChunkConstants {
     uint32_t input_last_chunk_size = 0;
     uint32_t output_chunk_size = 0;
     uint32_t output_last_chunk_size = 0;
+    uint32_t output_page_size = 0;
     uint32_t rows_per_tile = 1;
     uint32_t total_rows = 0;
 };
@@ -228,8 +229,11 @@ void enumerate_core_rt_args(
     k.input_last_chunk_size =
         rm_interleaved ? input_page_bytes - ((k.chunks_per_row - 1) * input_tile_bytes) : input_tile_bytes;
     k.output_chunk_size = output_tile_bytes;
+    // The output DFB holds the input's row chunks in the output dtype. A preallocated output's page can differ
+    // from that row, so the writer clips each write to output_page_size.
     k.output_last_chunk_size =
-        rm_interleaved ? output_page_bytes - ((k.chunks_per_row - 1) * output_tile_bytes) : output_tile_bytes;
+        rm_interleaved ? (k.input_last_chunk_size / datum_size(input_df)) * datum_size(output_df) : output_tile_bytes;
+    k.output_page_size = output_page_bytes;
     k.total_rows = rm_interleaved ? output.mesh_buffer().num_pages() : 0;
     if (rm_interleaved && input_page_bytes > 0 && input_page_bytes < input_tile_bytes) {
         const uint32_t input_element_size = datum_size(input_df);
@@ -440,6 +444,7 @@ tt::tt_metal::experimental::ProgramRunArgs make_run_args(
             common["rows_per_tile"] = rm_interleaved ? chunks.rows_per_tile : 0;
             common["total_rows"] = rm_interleaved ? chunks.total_rows : 0;
         }
+        writer_run_args.common_runtime_arg_values["output_page_size"] = rm_interleaved ? chunks.output_page_size : 0;
     }
     compute_run_args.common_runtime_arg_values["packed_scalar1"] = packed_scalar1;
     compute_run_args.common_runtime_arg_values["packed_scalar2"] = packed_scalar2;
@@ -625,6 +630,11 @@ ttnn::device_operation::ProgramArtifacts UnaryDeviceOperation::ProgramFactory::c
     for (const auto& [name, value] : dram_read_args(plan, input, all_device_cores)) {  // values are set per dispatch
         dm_common_runtime_arg_names.push_back(name);
     }
+    // Only the writer takes output_page_size.
+    Group<std::string> writer_common_runtime_arg_names = dm_common_runtime_arg_names;
+    if (!has_sharding) {
+        writer_common_runtime_arg_names.push_back("output_page_size");
+    }
 
     const auto arch = input.device()->arch();
 
@@ -677,7 +687,7 @@ ttnn::device_operation::ProgramArtifacts UnaryDeviceOperation::ProgramFactory::c
             .accessor_name = "dst",
         }},
         .runtime_arg_schema =
-            {.runtime_arg_names = dm_runtime_arg_names, .common_runtime_arg_names = dm_common_runtime_arg_names},
+            {.runtime_arg_names = dm_runtime_arg_names, .common_runtime_arg_names = writer_common_runtime_arg_names},
         .hw_config = ttnn::create_writer_datamovement_config(true),
     };
     if (work_queue) {

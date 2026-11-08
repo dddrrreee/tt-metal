@@ -555,6 +555,25 @@ def test_unary_rm_interleaved(device, shape, torch_dtype, ttnn_dtype):
     assert torch.equal(ttnn_output, golden_output)
 
 
+def _rm_dram_with_padded_width(device, torch_tensor, padded_width, pad_value):
+    padded = torch.full((*torch_tensor.shape[:-1], padded_width), pad_value, dtype=torch_tensor.dtype)
+    padded[..., : torch_tensor.shape[-1]] = torch_tensor
+    host = ttnn.from_torch(padded, dtype=ttnn.bfloat16, layout=ttnn.ROW_MAJOR_LAYOUT)
+    host = ttnn.reshape(host, ttnn.Shape(list(torch_tensor.shape)), ttnn.Shape(list(padded.shape)))
+    return ttnn.to_device(host, device, memory_config=ttnn.DRAM_MEMORY_CONFIG)
+
+
+@pytest.mark.parametrize("input_width, output_width", [(1056, 32), (64, 32), (32, 64)])
+def test_unary_rm_interleaved_output_padded_differently(device, input_width, output_width):
+    """Preallocated ROW_MAJOR output whose padded width differs from the input's."""
+    torch.manual_seed(0)
+    torch_input = torch.randn((1, 1, 32, 32), dtype=torch.bfloat16)
+    ttnn_input = _rm_dram_with_padded_width(device, torch_input, input_width, -7.0)
+    ttnn_output = _rm_dram_with_padded_width(device, torch.full_like(torch_input, -19.0), output_width, -19.0)
+    ttnn.abs(ttnn_input, output_tensor=ttnn_output)
+    assert torch.equal(ttnn.to_torch(ttnn_output), torch.abs(torch_input))
+
+
 @pytest.mark.parametrize("torch_dtype, ttnn_dtype", [(torch.bfloat16, ttnn.bfloat16), (torch.float32, ttnn.float32)])
 def test_unary_rm_block_shard(device, torch_dtype, ttnn_dtype):
     """Test block-sharded ROW_MAJOR with non-tile-aligned shard shape (32, 80).

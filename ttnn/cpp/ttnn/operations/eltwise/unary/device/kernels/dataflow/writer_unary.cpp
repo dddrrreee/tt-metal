@@ -34,6 +34,7 @@ void kernel_main() {
     const uint32_t last_chunk_size = get_arg(args::last_chunk_size);
     const uint32_t rows_per_tile = get_arg(args::rows_per_tile);
     const uint32_t total_rows = get_arg(args::total_rows);
+    const uint32_t output_page_size = get_arg(args::output_page_size);
 
     for (uint32_t block = start_id; block < end_id; ++block) {
         uint32_t base_page = block * rows_per_tile;
@@ -42,14 +43,18 @@ void kernel_main() {
 
         for (uint32_t j = 0; j < chunks_per_row; ++j) {
             uint32_t bytes = (j == chunks_per_row - 1) ? last_chunk_size : chunk_size;
+            // A preallocated output's page can be narrower than the input's row: write only what fits.
+            uint32_t page_offset = j * chunk_size;
+            uint32_t page_left = (page_offset < output_page_size) ? output_page_size - page_offset : 0;
+            uint32_t write_bytes = (bytes < page_left) ? bytes : page_left;
             dfb_dst.wait_front(onepage);
-            for (uint32_t r = 0; r < actual_rows; ++r) {
+            for (uint32_t r = 0; r < actual_rows && write_bytes > 0; ++r) {
                 noc.async_write(
                     dfb_dst,
                     dst,
-                    bytes,
+                    write_bytes,
                     {.offset_bytes = r * bytes},
-                    {.page_id = base_page + r, .offset_bytes = j * chunk_size});
+                    {.page_id = base_page + r, .offset_bytes = page_offset});
             }
             noc.async_writes_flushed();
             dfb_dst.pop_front(onepage);
