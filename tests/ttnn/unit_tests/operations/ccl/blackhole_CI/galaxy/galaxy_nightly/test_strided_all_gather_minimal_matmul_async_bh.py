@@ -407,3 +407,35 @@ def test_strided_all_gather_minimal_matmul_ltx_configs(
         read_local_slice_from_input=True,
         mm_signal_aggregator_mode=ttnn.MMSignalAggregatorMode.On,
     )
+
+
+# One K tile per device: K_block 2 or 4 makes a block cover slices the K-block schedule never credits,
+# which hung; the op must refuse it. K_block 1 keeps one slice per block and still runs.
+@skip_for_wormhole_b0()
+@skip_for_n_or_less_dev(3)
+@pytest.mark.parametrize("mesh_device", [(1, 4)], indirect=True)
+@pytest.mark.parametrize("mm_block_k", [32, 64, 128], ids=["k_block1", "k_block2_refused", "k_block4_refused"])
+@pytest.mark.parametrize("device_params", [{"fabric_config": ttnn.FabricConfig.FABRIC_1D}], indirect=True)
+def test_strided_all_gather_minimal_matmul_k_block_spans_slices(mesh_device, mm_block_k, expect_error):
+    dram = ttnn.DRAM_MEMORY_CONFIG
+    kwargs = dict(
+        all_gather_topology=ttnn.Topology.Linear,
+        enable_trace=False,
+        num_workers_per_link=1,
+        num_buffers_per_channel=1,
+        mm_block_m=32,
+        mm_block_k=mm_block_k,
+        mm_block_n=64,
+        subblock_h=1,
+        subblock_w=2,
+        mm_core_grid=ttnn.CoreCoord(2, 2),
+        use_non_fused=False,
+        ag_core_grid_offset=(0, 2),
+        mm_signal_aggregator_mode=ttnn.MMSignalAggregatorMode.Off,
+    )
+    args = (mesh_device, 4, 128, 128, 128, 3, 2, 1, ttnn.bfloat16, ttnn.TILE_LAYOUT, dram, dram, dram)
+    if mm_block_k == 32:
+        run_strided_all_gather_minimal_matmul_impl(*args, **kwargs)
+        return
+    with expect_error(RuntimeError, "StridedAllGatherMinimalMatmulAsync does not support K_block_size"):
+        run_strided_all_gather_minimal_matmul_impl(*args, **kwargs)

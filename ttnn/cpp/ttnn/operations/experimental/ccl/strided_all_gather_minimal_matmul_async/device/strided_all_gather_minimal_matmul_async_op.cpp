@@ -28,6 +28,41 @@ void StridedAllGatherMinimalMatmulAsync::validate_on_program_cache_miss(
         tensor_args.fused_ternary_input_a.has_value() == tensor_args.fused_ternary_input_b.has_value(),
         "StridedAllGatherMinimalMatmulAsync fused addcmul requires both ternary inputs (a and b) or neither.");
 
+    // Replay the K-block schedule both sides build (compute_device_chunk_stats, device_chunk_widths): it credits each
+    // block to its current device and at most the next one, so refuse block sizes whose blocks cover other slices.
+    {
+        const auto& ag_attributes = attributes.strided_all_gather_async_struct;
+        const uint32_t input_Wt = tensor_args.input_tensor.padded_shape()[-1] / tt::constants::TILE_WIDTH;
+        const uint32_t k_block_tiles = ag_attributes.mm_block_wt.value_or(0);
+        const uint32_t num_devices = ag_attributes.ring_size;
+        if (input_Wt > 0 && k_block_tiles > 0) {
+            const uint32_t K_tiles = input_Wt * num_devices;
+            const uint32_t K_blocks = (K_tiles + k_block_tiles - 1) / k_block_tiles;
+            uint32_t curr_device = 0;
+            for (uint32_t k_block_iter = 0; k_block_iter < K_blocks; k_block_iter++) {
+                const uint32_t k_block_start = k_block_iter * k_block_tiles;
+                const uint32_t k_block_end = ((k_block_iter + 1) * k_block_tiles) - 1;
+                const uint32_t first_device = k_block_start / input_Wt;
+                const uint32_t last_device = std::min(k_block_end, K_tiles - 1) / input_Wt;
+                TT_FATAL(
+                    first_device == curr_device && last_device <= curr_device + 1,
+                    "StridedAllGatherMinimalMatmulAsync does not support K_block_size {} with {} K tiles per device on "
+                    "{} devices: K block {} covers device slices {} to {}, but the K-block schedule assigns it device "
+                    "{} and at most the next one",
+                    k_block_tiles,
+                    input_Wt,
+                    num_devices,
+                    k_block_iter,
+                    first_device,
+                    last_device,
+                    curr_device);
+                if (k_block_end >= ((curr_device + 1) * input_Wt) - 1) {
+                    curr_device++;
+                }
+            }
+        }
+    }
+
     // SwiGLU packs gate/up tile-pairs along the weight's N, so the weight width must be an even
     // number of tiles; each pair collapses to one output tile. Restated here because this op does
     // not route through MinimalMatmulDeviceOperation::validate_*.
