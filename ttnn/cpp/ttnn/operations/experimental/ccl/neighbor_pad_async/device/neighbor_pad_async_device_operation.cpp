@@ -29,6 +29,17 @@ void NeighborPadAsyncDeviceOperation::validate_on_program_cache_miss(
 
     TT_FATAL(!tensor_args.input_tensor.is_sharded(), "Neighbor pad does not support sharded input tensors.");
 
+    // The kernels count and address rows by the padded shape while the output is sized by the logical shape.
+    for (size_t d = 0; d + 1 < input_rank; d++) {
+        TT_FATAL(
+            tensor_args.input_tensor.logical_shape()[d] == tensor_args.input_tensor.padded_shape()[d],
+            "Neighbor pad does not support input tensors with padding in a non-last dim: logical shape {} vs padded "
+            "shape {} at dim {}.",
+            tensor_args.input_tensor.logical_shape(),
+            tensor_args.input_tensor.padded_shape(),
+            d);
+    }
+
     TT_FATAL(
         args.padding_mode == "zeros" || args.padding_mode == "replicate",
         "Unsupported padding mode {}.",

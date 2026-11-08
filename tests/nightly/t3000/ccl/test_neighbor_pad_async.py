@@ -518,3 +518,33 @@ def test_neighbor_pad_async_2d(
         topology=ttnn.Topology.Linear,
         use_persistent_output_buffer=use_persistent_output_buffer,
     )
+
+
+# A ROW_MAJOR input stored taller than its logical height made the op copy its padding rows past the
+# output; the op must refuse it. The same input stored at its logical height still pads exactly.
+@pytest.mark.parametrize("mesh_device", [(1, 4)], indirect=True)
+@pytest.mark.parametrize("stored_h", [4, 32], ids=["stored_eq_logical", "stored_taller_refused"])
+@pytest.mark.parametrize("device_params", [{"fabric_config": ttnn.FabricConfig.FABRIC_1D}], indirect=True)
+def test_neighbor_pad_async_height_padded_input(mesh_device, stored_h, expect_error):
+    grid = mesh_device.compute_with_storage_grid_size()
+    cores = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(grid.x - 1, grid.y - 1))})
+    neighbor_sem, barrier_sem = [ttnn.create_global_semaphore(mesh_device, cores, 0) for _ in range(2)]
+    shards = [torch.full((1, 1, stored_h, 32), -7.0).bfloat16() for _ in range(4)]
+    for d, shard in enumerate(shards):
+        shard[0, 0, :4] = (torch.arange(1, 5) + 10 * d).reshape(4, 1)
+    hosts = [ttnn.from_torch(s, dtype=ttnn.bfloat16, layout=ttnn.ROW_MAJOR_LAYOUT) for s in shards]
+    if stored_h != 4:
+        hosts = [ttnn.reshape(h, ttnn.Shape([1, 1, 4, 32]), ttnn.Shape([1, 1, stored_h, 32])) for h in hosts]
+    dram = ttnn.DRAM_MEMORY_CONFIG
+    x = ttnn.to_device(ttnn.from_host_shards(hosts, mesh_device.shape), mesh_device, memory_config=dram)
+    args = (x, [2], [1], [1], "zeros", [1], [neighbor_sem], [barrier_sem])
+    kwargs = dict(num_links=[1], memory_config=dram, topology=ttnn.Topology.Linear)
+    if stored_h != 4:
+        with expect_error(RuntimeError, "Neighbor pad does not support input tensors with padding in a non-last dim"):
+            ttnn.experimental.neighbor_pad_async(*args, **kwargs)
+        return
+    out = ttnn.experimental.neighbor_pad_async(*args, **kwargs)
+    ttnn.synchronize_device(mesh_device)
+    golden = pad_chunks_along_dim([s[:, :, :4] for s in shards], 2, 1, 1, "zeros")
+    for d, t in enumerate(ttnn.get_device_tensors(out)):
+        assert torch.equal(ttnn.to_torch(t), golden[d]), f"device {d}"
