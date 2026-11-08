@@ -6,6 +6,7 @@
 
 #include "ttnn/device_operation.hpp"
 #include <tt-metalium/constants.hpp>
+#include <tt-metalium/math.hpp>
 #include "ttnn/operations/experimental/reduction/fast_reduce_nc/device/fast_reduce_nc_program_factory.hpp"
 #include "ttnn/operations/moreh/moreh_helper_functions.hpp"
 #include "ttnn/operations/reduction/reduce_op_validation.hpp"
@@ -128,6 +129,16 @@ FastReduceNCDeviceOperation::spec_return_value_t FastReduceNCDeviceOperation::co
     const auto output_dtype = args.output_dtype.value_or(input.dtype());
     const auto layout =
         operations::TensorLayout(output_dtype, operations::PageConfig(Layout::TILE), args.output_mem_config);
+    // The program walks the input's padded tile grid. Only an input padded to whole tiles gives a logical shape that
+    // rounds back to that grid; an input padded past whole tiles keeps the padded shape, as before.
+    auto logical_output_shape = input.logical_shape();
+    logical_output_shape[args.dim] = 1;
+    auto rounded_output_shape = logical_output_shape;
+    rounded_output_shape[-2] = tt::round_up(rounded_output_shape[-2], layout.get_tile().get_height());
+    rounded_output_shape[-1] = tt::round_up(rounded_output_shape[-1], layout.get_tile().get_width());
+    if (rounded_output_shape == output_shape) {
+        output_shape = logical_output_shape;
+    }
     if (args.split_output_width.has_value()) {
         auto right_shape = output_shape;
         output_shape[-1] = args.split_output_width.value();

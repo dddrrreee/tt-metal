@@ -241,3 +241,69 @@ def test_fast_reduce_nc_float32_default_config(input_shape, device):
     out = ttnn.to_torch(ttnn.experimental.fast_reduce_nc(x, dims=[1]))
     ref = torch.sum(torch_input.double(), dim=1, keepdim=True).float()
     torch.testing.assert_close(out, ref, rtol=1e-4, atol=1e-5)
+
+
+@pytest.mark.parametrize(
+    "input_shape,dims",
+    [([1, 4, 1, 2816], [1]), ([3, 2, 100, 64], [0]), ([3, 2, 100, 64], [0, 1]), ([1, 4, 32, 100], [1])],
+    ids=["h1_dim1", "h100_dim0", "h100_dim01", "w100_dim1"],
+)
+def test_fast_reduce_nc_unaligned_shape(input_shape, dims, device):
+    torch.manual_seed(0)
+    torch_input = torch.randint(-3, 4, input_shape, dtype=torch.bfloat16)
+    x = ttnn.from_torch(torch_input, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    out = ttnn.experimental.fast_reduce_nc(x, dims=dims)
+    ref = torch.sum(torch_input.double(), dims, keepdim=True)
+    assert list(out.shape) == list(ref.shape)
+    torch.testing.assert_close(ttnn.to_torch(out).double(), ref, rtol=0, atol=0)
+
+
+def test_fast_reduce_nc_split_unaligned_height(device):
+    torch.manual_seed(0)
+    torch_input = torch.randint(-3, 4, [1, 4, 1, 576], dtype=torch.bfloat16)
+    x = ttnn.from_torch(torch_input, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    left, right = ttnn.experimental.fast_reduce_nc_split(x, dim=1, split_output_width=512)
+    ref = torch.sum(torch_input.double(), 1, keepdim=True)
+    assert list(left.shape) == [1, 1, 1, 512] and list(right.shape) == [1, 1, 1, 64]
+    torch.testing.assert_close(ttnn.to_torch(left).double(), ref[..., :512], rtol=0, atol=0)
+    torch.testing.assert_close(ttnn.to_torch(right).double(), ref[..., 512:], rtol=0, atol=0)
+
+
+def _sharded_l1(layout, grid_end, shard_shape):
+    grid = ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(*grid_end))})
+    shard_spec = ttnn.ShardSpec(grid, shard_shape, ttnn.ShardOrientation.ROW_MAJOR)
+    return ttnn.MemoryConfig(layout, ttnn.BufferType.L1, shard_spec)
+
+
+# The reader walks the input's padded tile grid, so an input padded past whole tiles keeps that grid in the output,
+# interleaved or sharded; NaN padding shows up in the sums if it does not.
+@pytest.mark.parametrize(
+    "memory_config",
+    [
+        ttnn.DRAM_MEMORY_CONFIG,
+        _sharded_l1(ttnn.TensorMemoryLayout.BLOCK_SHARDED, (1, 1), [64, 32]),
+        _sharded_l1(ttnn.TensorMemoryLayout.HEIGHT_SHARDED, (1, 0), [64, 64]),
+        _sharded_l1(ttnn.TensorMemoryLayout.WIDTH_SHARDED, (1, 0), [128, 32]),
+    ],
+    ids=["interleaved", "block_sharded", "height_sharded", "width_sharded"],
+)
+def test_fast_reduce_nc_input_padded_past_tile_grid(device, memory_config):
+    torch.manual_seed(0)
+    torch_input = torch.randint(-3, 4, [2, 4, 1, 32], dtype=torch.bfloat16)
+    rm = ttnn.from_torch(torch_input, dtype=ttnn.bfloat16, layout=ttnn.ROW_MAJOR_LAYOUT, device=device)
+    x = ttnn.tilize_with_val_padding(rm, [2, 4, 64, 64], float("nan"))
+    out = ttnn.experimental.fast_reduce_nc(x, dims=[1], memory_config=memory_config)
+    assert list(out.padded_shape) == [2, 1, 64, 64]
+    ref = torch.sum(torch_input.double(), 1, keepdim=True)
+    torch.testing.assert_close(ttnn.to_torch(out).double()[:, :, :1, :32], ref, rtol=0, atol=0)
+
+
+def test_fast_reduce_nc_unaligned_height_sharded_output(device):
+    torch.manual_seed(0)
+    torch_input = torch.randint(-3, 4, [2, 4, 1, 32], dtype=torch.bfloat16)
+    x = ttnn.from_torch(torch_input, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device)
+    memory_config = _sharded_l1(ttnn.TensorMemoryLayout.HEIGHT_SHARDED, (1, 0), [32, 32])
+    out = ttnn.experimental.fast_reduce_nc(x, dims=[1], memory_config=memory_config)
+    ref = torch.sum(torch_input.double(), 1, keepdim=True)
+    assert list(out.shape) == list(ref.shape)
+    torch.testing.assert_close(ttnn.to_torch(out).double(), ref, rtol=0, atol=0)
