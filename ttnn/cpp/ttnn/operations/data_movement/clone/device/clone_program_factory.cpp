@@ -32,8 +32,9 @@ ttnn::device_operation::ProgramArtifacts CloneProgramFactory::create_program_art
     };
     uint32_t input_unit_size = compute_unit_size(input, input_data_format);
     uint32_t output_unit_size = compute_unit_size(output, output_data_format);
+    // ROW_MAJOR: one unit per page, i.e. per physical row (padded width), not per logical-width slice.
     uint32_t num_units =
-        tilized ? output.physical_volume() / TILE_HW : output.physical_volume() / output.logical_shape()[-1];
+        tilized ? output.physical_volume() / TILE_HW : output.physical_volume() / output.padded_shape()[-1];
 
     auto output_memory_layout = output.memory_config().memory_layout();
     bool is_sharded = output_memory_layout != TensorMemoryLayout::INTERLEAVED;

@@ -505,3 +505,32 @@ def test_clone_sub_core_grids(device, layout, dtype):
     )
     output = ttnn.clone(input_tensor, dtype=dtype, sub_core_grids=sub_core_grids)
     assert torch.equal(ttnn.to_torch(output).to(torch.bfloat16), torch_input)
+
+
+def test_clone_rm_width_padded_input_writes_only_its_output(device):
+    """ROW_MAJOR input padded wider than its logical width; the next DRAM buffer must not change."""
+    torch.manual_seed(0)
+    logical, padded = [1, 1, 384, 16], [1, 1, 384, 32]
+    torch_input = torch.randn(logical, dtype=torch.bfloat16)
+    host = ttnn.from_torch(
+        torch.nn.functional.pad(torch_input, (0, padded[-1] - logical[-1])), layout=ttnn.ROW_MAJOR_LAYOUT
+    )
+    host = ttnn.reshape(host, ttnn.Shape(logical), ttnn.Shape(padded))
+
+    def filled(value):
+        t = torch.full(padded, value, dtype=torch.bfloat16)
+        return ttnn.from_torch(t, layout=ttnn.ROW_MAJOR_LAYOUT, device=device, memory_config=ttnn.DRAM_MEMORY_CONFIG)
+
+    # Four equal DRAM buffers in address order: x's slot, a spacer, the output's slot, the guard.
+    x_slot, spacer, output_slot, guard = sorted(
+        (filled(v) for v in (1.0, 2.0, 3.0, 4.0)), key=lambda t: t.buffer_address()
+    )
+    slot_addresses = (x_slot.buffer_address(), output_slot.buffer_address())
+    guard_before = ttnn.to_torch(guard)
+    ttnn.deallocate(x_slot)
+    ttnn.deallocate(output_slot)
+    x = ttnn.to_device(host, device, memory_config=ttnn.DRAM_MEMORY_CONFIG)
+    output = ttnn.clone(x, memory_config=ttnn.DRAM_MEMORY_CONFIG)
+    assert (x.buffer_address(), output.buffer_address()) == slot_addresses
+    assert torch.equal(ttnn.to_torch(output), torch_input)
+    assert torch.equal(ttnn.to_torch(guard), guard_before)
