@@ -1414,3 +1414,23 @@ def test_where_rejects_scalar_not_representable_in_int_tensor(device, expect_err
             ttnn.where(tt_c, tt_t, scalar)
         else:
             ttnn.where(tt_c, scalar, tt_t)
+
+
+@pytest.mark.parametrize(
+    "shape, padded_shape",
+    [([1, 1, 1, 1, 32, 32], [2, 1, 1, 1, 32, 32]), ([2, 1, 1, 1, 1, 32, 32], [2, 2, 1, 1, 1, 32, 32])],
+)
+def test_where_rejects_output_padded_in_dim_minus_6_and_up(device, expect_error, shape, padded_shape):
+    predicate, true_value, false_value = (
+        ttnn.from_torch(torch.full(shape, v, dtype=torch.bfloat16), layout=ttnn.TILE_LAYOUT, device=device)
+        for v in (1.0, 3.0, 7.0)
+    )
+    host = ttnn.from_torch(torch.full(padded_shape, -19.0, dtype=torch.bfloat16), layout=ttnn.TILE_LAYOUT)
+    padded_out = ttnn.to_device(ttnn.reshape(host, ttnn.Shape(shape), ttnn.Shape(padded_shape)), device)
+
+    with expect_error(RuntimeError, "requires it not to be padded in dims -6 and up"):
+        ttnn.where(predicate, true_value, false_value, output_tensor=padded_out)
+
+    out = ttnn.from_torch(torch.full(shape, -19.0, dtype=torch.bfloat16), layout=ttnn.TILE_LAYOUT, device=device)
+    ttnn.where(predicate, true_value, false_value, output_tensor=out)
+    assert torch.equal(ttnn.to_torch(out), torch.full(shape, 3.0, dtype=torch.bfloat16))

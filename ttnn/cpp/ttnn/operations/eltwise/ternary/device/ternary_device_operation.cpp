@@ -415,6 +415,23 @@ void TernaryDeviceOperation::validate_on_program_cache_miss(
             optional_output_tensor_shape);
 
         require_tile(*optional_output_tensor, "the output tensor");
+
+        // Every reader but the flat no-broadcast TTS/TST one walks dims -6 and up as one count from the logical
+        // shape, so with those readers the tiles of an output padded there are never read or written.
+        const auto& padded_shape = optional_output_tensor->padded_shape();
+        for (int i = -6; i >= -static_cast<int>(optional_output_tensor_shape.rank()); --i) {
+            if (optional_output_tensor_shape[i] == padded_shape[i]) {
+                continue;
+            }
+            const auto reader =
+                TernaryKernelConfig(args.ternary_op_type, args.ternary_variant, args.broadcast_type).reader_kernel;
+            TT_FATAL(
+                reader == KernelName::ReaderNoBcastTTS || reader == KernelName::ReaderNoBcastTST,
+                "When preallocated output tensor is used, Ternary operation requires it not to be padded in dims -6 "
+                "and up. Logical shape: {}, padded shape: {}",
+                optional_output_tensor_shape,
+                padded_shape);
+        }
     }
 
     // SNAKE_BETA-specific validation
