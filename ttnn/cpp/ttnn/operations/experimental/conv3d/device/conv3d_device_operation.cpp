@@ -87,6 +87,11 @@ void Conv3dDeviceOperation::validate_on_program_cache_hit(
         "Input and weight tensors must have the same dtype. got {} vs {}",
         input_tensor_a.dtype(),
         weight_tensor.dtype());
+    TT_FATAL(
+        args.dtype == input_tensor_a.dtype(),
+        "Output dtype must equal the input dtype (conv3d does not convert the output). got {} vs {}",
+        args.dtype,
+        input_tensor_a.dtype());
 
     if (tensor_args.bias_tensor.has_value()) {
         const auto& bias_tensor = tensor_args.bias_tensor.value();

@@ -839,6 +839,36 @@ def test_conv3d_halo_buffer_rejects_unsupported(device, expect_error, padding_mo
         )
 
 
+@pytest.mark.parametrize(
+    "input_dtype, output_dtype",
+    [(ttnn.float32, ttnn.bfloat16), (ttnn.bfloat16, ttnn.float32)],
+    ids=["fp32_in_bf16_out", "bf16_in_fp32_out"],
+)
+def test_conv3d_rejects_output_dtype_unlike_input(device, expect_error, input_dtype, output_dtype):
+    """The factory sizes the output rows from the input dtype, so it cannot write a different output dtype."""
+    tt_input = ttnn.from_torch(
+        torch.ones(1, 1, 1, 1, 32), device=device, dtype=input_dtype, layout=ttnn.ROW_MAJOR_LAYOUT
+    )
+    tt_weight = ttnn.experimental.prepare_conv3d_weights(
+        weight_tensor=ttnn.from_torch(torch.eye(32).reshape(32, 32, 1, 1, 1), dtype=input_dtype, pad_value=0),
+        groups=1,
+        C_in_block=32,
+        alignment=ALIGNMENT,
+        device=device,
+    )
+    config = create_conv3d_config(C_out_block=32, C_in_block=32, weights_dtype=input_dtype)
+    with expect_error(RuntimeError, "Output dtype must equal the input dtype"):
+        ttnn.experimental.conv3d(
+            input_tensor=tt_input,
+            weight_tensor=tt_weight,
+            device=device,
+            config=config,
+            dtype=output_dtype,
+            output_channels=32,
+            kernel_size=(1, 1, 1),
+        )
+
+
 def _prepare_fp32_conv3d_weight(weight, C_in_block, device):
     tt_weight = ttnn.from_torch(weight, dtype=ttnn.float32, pad_value=0)
     return ttnn.experimental.prepare_conv3d_weights(
