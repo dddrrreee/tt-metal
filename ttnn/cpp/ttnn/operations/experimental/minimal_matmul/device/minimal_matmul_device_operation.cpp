@@ -96,6 +96,20 @@ void validate_operands_on_device(const MinimalMatmulInputs& tensor_args) {
     }
 }
 
+// The kernels write the activation's folded rows (physical_volume / K) into outputs shaped from its logical rows,
+// so an activation padded past its tile-rounded rows would be written past the outputs.
+void validate_rows_fit_output(const Tensor& act, const tt::tt_metal::TensorSpec& output_spec) {
+    TT_FATAL(
+        folded_rows(act) <= folded_rows(output_spec),
+        "minimal_matmul does not support an activation padded past its tile-rounded rows: activation {} padded {} "
+        "has {} folded rows, the output {} only {}",
+        act.logical_shape(),
+        act.padded_shape(),
+        folded_rows(act),
+        output_spec.logical_shape(),
+        folded_rows(output_spec));
+}
+
 }  // namespace
 
 ttsl::hash::hash_t MinimalMatmulDeviceOperation::compute_program_hash(
@@ -133,6 +147,7 @@ void MinimalMatmulDeviceOperation::validate_on_program_cache_hit(
     const auto& act_tensor = tensor_args.input_tensor;
     const uint32_t M = folded_rows(act_tensor);
     TT_FATAL(M > 0 && M % TILE_HEIGHT == 0, "minimal_matmul activation rows ({}) must be a multiple of 32", M);
+    validate_rows_fit_output(act_tensor, compute_output_specs(operation_attributes, tensor_args).at(0));
     if (tensor_args.optional_input_tensor.has_value()) {
         // Logical rows as on the miss path: two sources that only agree once padded would feed the
         // suffix's padding to live activation rows.
@@ -315,6 +330,7 @@ void MinimalMatmulDeviceOperation::validate_on_program_cache_miss(
     TT_FATAL(
         w_padded[-2] % TILE_HEIGHT == 0 && w_padded[-1] % TILE_WIDTH == 0,
         "minimal_matmul weight must be tile-aligned");
+    validate_rows_fit_output(act_tensor, compute_output_specs(operation_attributes, tensor_args).at(0));
     if (has_bias) {
         const auto& b_padded = bias_ptr->padded_shape();
         TT_FATAL(b_padded[-1] % TILE_WIDTH == 0, "minimal_matmul bias last dimension must be tile-aligned");

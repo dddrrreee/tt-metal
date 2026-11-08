@@ -1033,6 +1033,30 @@ def test_fused_ternary_per_batch_gate_refused(device, expect_error):
         )
 
 
+def test_activation_padded_past_tile_rows_refused(device, expect_error):
+    """An activation of 32 rows stored as 64 would write 64 rows into a 32-row output, on a miss or a hit."""
+    compute_config, matmul_config = _cache_hit_config(device, core_grid=ttnn.CoreCoord(2, 2))
+    weight = ttnn.from_torch(torch.ones(32, 256), dtype=ttnn.bfloat16, device=device, layout=ttnn.TILE_LAYOUT)
+
+    def call(rows, padded_rows):
+        host = ttnn.from_torch(torch.ones(1, 1, padded_rows, 32), dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT)
+        x = ttnn.reshape(host, ttnn.Shape([1, 1, rows, 32]), ttnn.Shape([1, 1, padded_rows, 32]))
+        x = ttnn.to_device(x, device)
+        return ttnn.experimental.minimal_matmul(x, weight, compute_kernel_config=compute_config, config=matmul_config)
+
+    message = "minimal_matmul does not support an activation padded past its tile-rounded rows"
+    device.enable_program_cache()
+    device.clear_program_cache()
+    with expect_error(RuntimeError, message):
+        call(32, 64)
+    # The row-free program hash gives this 64-row call and the over-padded one the same program.
+    assert torch.equal(ttnn.to_torch(call(64, 64)), torch.full((1, 1, 64, 256), 32.0, dtype=torch.bfloat16))
+    with expect_error(RuntimeError, message):
+        call(32, 64)
+    assert device.num_program_cache_entries() == 1
+    device.clear_program_cache()
+
+
 def test_run_performance(device):
     core_grid = ttnn.CoreCoord(8, 8)
     M, K, N = 4096, 4096, 4096
